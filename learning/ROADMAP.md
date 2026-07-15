@@ -19,6 +19,7 @@
 ## Phase 2：Git・GitHub基礎
 
 - [x] `git init`、`add`、`commit`、`push`
+- [x] ローカルリポジトリをGitHubへ接続し、初回pushを行う
 - [x] ブランチ作成、Pull Request、Merge、`pull`
 - [x] `.gitignore` とREADMEの基礎
 - [ ] 小さな単位でコミットを分ける

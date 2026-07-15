@@ -22,6 +22,7 @@ FastAPI、Pydantic、SQLAlchemy、SQLiteを使い、Web APIとデータベース
 - IDによる1件取得、`.first()`、404処理まで完了済みとして引き継ぐ
 - `response_model` は基本説明を受けた学習中の状態
 - レスポンス用Pydanticスキーマ、DBモデルとの分離、`from_attributes` は未完了
+- GitHubリポジトリ `Shuhei-Hashizdume/FastAPIStudy` へ接続し、開発履歴の記録を開始済み
 
 ### 次の改善
 

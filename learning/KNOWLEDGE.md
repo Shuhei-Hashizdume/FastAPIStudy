@@ -2,6 +2,14 @@
 
 「説明を受けた」と「自力で使える」を区別して記録する。完了判定は `ROADMAP.md` の完了条件に従う。
 
+## Git・GitHub接続
+
+- 状態：基礎学習済み
+- 実施済み：`git init`、`.gitignore`、`git add`、初回commit、remote登録、初回push
+- 接続先：`https://github.com/Shuhei-Hashizdume/FastAPIStudy.git`
+- 理解確認済み：`git init`、`git add`、commit、pushの基本的な役割
+- 今後の確認：変更差分を確認し、小さな単位のコミットとPull Requestを自力で行えるか確認する
+
 ## Python基礎
 
 - 状態：学習済み

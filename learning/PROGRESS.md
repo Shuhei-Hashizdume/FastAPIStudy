@@ -10,6 +10,16 @@
 
 ## 完了済みとして確認できる範囲
 
+### Git・GitHub
+
+- ローカルリポジトリの初期化
+- `.gitignore` による `__pycache__/`、`venv/`、`book.db` の除外
+- 初回コミット
+- GitHubリポジトリ `Shuhei-Hashizdume/FastAPIStudy` との接続
+- `main` と `origin/main` の対応付け、および初回push
+
+### FastAPI・SQLAlchemy
+
 - FastAPIの起動、GET、POST
 - パスパラメータ、クエリパラメータ、リクエストボディ
 - Pydanticによる入力
@@ -42,6 +52,8 @@
 
 ## 現在の強み
 
+- `git init`、ステージング、コミット、remote登録、pushを順番に確認しながら実行した
+- Git管理から除外すべき自動生成物やローカルDBの理由を理解した
 - Pythonの基本文法、関数、クラス、例外処理を学習済み
 - FastAPIとSQLAlchemyを組み合わせ、書籍管理APIを継続して作っている
 - ID検索で対象がない場合を考え、404を返す処理まで進んでいる
