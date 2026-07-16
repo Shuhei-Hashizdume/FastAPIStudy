@@ -68,3 +68,50 @@
 ### FastAPI学習の次回開始地点
 
 `response_model` の理解確認と、書籍管理APIへの実装。今回のGit学習による変更はない。
+
+## 2026-07-16：`response_model` とCRUDレスポンス改善
+
+### 実施内容
+
+- `BookResponse` を作成し、`book_id`、`title`、`author` を定義した
+- GET1件へ `response_model=BookResponse` を設定した
+- GET全件へ `response_model=list[BookResponse]` を設定した
+- `ConfigDict(from_attributes=True)` を設定した
+- POSTの入れ子レスポンスをやめ、登録した書籍を直接返す設計へ変更した
+- PATCHのレスポンスを `BookResponse` に統一した
+- DELETEを `204 No Content` に変更した
+- 講義で処理主体を明確にするルールを `AGENTS.md` へ追加した
+
+### 理解確認できた内容
+
+- `response_model` は、FastAPIがエンドポイント関数の戻り値を検証・整形するときに使うレスポンス用Pydanticモデルを指定する
+- `BookRequest` はクライアントから受け取るリクエストボディを検証する
+- `BookDB` はSQLAlchemyでテーブルと1レコード分のデータを扱う
+- `BookResponse` はクライアントへ公開する項目と型を定義する
+- `from_attributes=True` は、PydanticがSQLAlchemyオブジェクトの属性から値を読み取るための設定
+- 1件は `BookResponse`、複数件は `list[BookResponse]` で表す
+- API間でレスポンス構造を統一すると、クライアント側の処理が単純になる
+- `204` は成功したが返す本文がないことを表す
+- 422のJSON構文エラーと必須フィールド不足をエラー内容から区別した
+
+### 動作確認
+
+- POST正常系：201と `BookResponse`
+- GET全件正常系：200と `list[BookResponse]`
+- GET1件正常系：200、存在しないID：404
+- PATCH正常系：200、存在しないID：404
+- DELETE正常系：204、削除済みまたは存在しないID：404
+- POSTの `author` 欠落：422
+
+### 完了判定
+
+- 完了：`response_model`
+- 完了：レスポンス用Pydanticスキーマ
+- 完了：DBモデルとPydanticスキーマの分離
+- 完了：`from_attributes`
+- 完了：APIレスポンスの統一
+- 学習継続：更新・削除API全体の自力実装とトランザクションの説明
+
+### 次回開始地点
+
+更新・削除APIの処理を最初から説明し、`commit()`、`refresh()`、`rollback()` と例外処理を理解確認する。

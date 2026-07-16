@@ -5,22 +5,19 @@
 ## 現在の苦手・要復習
 
 - `commit()`、`refresh()`、`rollback()` の役割と処理順を自分の言葉で説明する
-- 正常系だけでなく異常系まで確認する習慣
-- コードが動くことと、APIの入出力設計が適切であることを分けて考える
+- FastAPI、Pydantic、SQLAlchemy、Uvicorn、エンドポイント関数の担当を、主語を明確にして説明する
+- コード上の不要な空白やimportを整理する
 
 ## 学習中
 
-- `response_model`
+- 更新API全体の処理とトランザクション
+- 削除API全体の処理とトランザクション
+- 正常系だけでなく異常系まで確認する習慣
 
-`response_model` は基本目的の説明を受けた段階。実装、理解確認、Swagger UI確認、応用課題は未完了。
+更新・削除のレスポンス改善とSwagger UIでの動作確認は完了。類似課題での自力実装と、例外時のrollbackを含む処理説明を次回確認する。
 
 ## 今後学習
 
-- レスポンス用Pydanticスキーマ（次回学習予定）
-- DBモデルとAPIレスポンスを分離する考え方（次回以降）
-- `from_attributes`
-- 更新APIと削除APIの設計・動作確認
-- APIレスポンスの統一
 - ファイル分割と `APIRouter`
 - pytestによるテスト
 - PostgreSQLとAlembic
@@ -29,12 +26,19 @@
 
 ## 経過観察
 
+- `response_model` とレスポンス用Pydanticスキーマ
+- `from_attributes`
+- 1件と複数件で異なるレスポンス型を選ぶ
+- APIレスポンスの一貫性
 - IDと `.first()` を使った1件取得
 - `HTTPException` を使った404処理
 - Dependency Injectionを使ったSession受け渡し
 
-一度コードで使用しているが、今後の類似課題で自力実装と説明ができるか確認する。
+今後の類似課題で、ヒントなしに設計・実装・説明できるか確認する。
 
 ## 克服済み
 
-現時点では、苦手から移動したことを示す理解確認記録なし。
+- `response_model` の基本目的、実装、Swagger UIでの確認
+- レスポンス用Pydanticスキーマの基本設計
+- DBモデルとAPIレスポンスモデルの役割の違い
+- SQLAlchemyオブジェクトの属性から値を読む `from_attributes=True` の基本

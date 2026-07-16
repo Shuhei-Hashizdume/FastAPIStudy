@@ -20,19 +20,19 @@ FastAPI、Pydantic、SQLAlchemy、SQLiteを使い、Web APIとデータベース
 ### 現在の到達点
 
 - IDによる1件取得、`.first()`、404処理まで完了済みとして引き継ぐ
-- `response_model` は基本説明を受けた学習中の状態
-- レスポンス用Pydanticスキーマ、DBモデルとの分離、`from_attributes` は未完了
+- `BookResponse` を作成し、POST・GET・PATCHへ `response_model` を設定済み
+- DBモデルとレスポンス用Pydanticモデルを分離し、`from_attributes` を設定済み
+- 1件と複数件のレスポンス型を使い分け、書籍1件のレスポンス構造を統一済み
+- DELETEは204・本文なしとし、404を含めて動作確認済み
 - GitHubリポジトリ `Shuhei-Hashizdume/FastAPIStudy` へ接続し、開発履歴の記録を開始済み
 
 ### 次の改善
 
-1. 書籍レスポンス用Pydanticスキーマを設計する
-2. GETまたはPOSTへ `response_model` を設定する
-3. Swagger UIで仕様と実際のレスポンスを確認する
-4. POST、GET全件、GET1件でレスポンスを一貫させる
-5. 更新・削除を理解確認とテストまで含めて完成させる
-6. ファイル分割と `APIRouter` を行う
-7. pytestを追加する
+1. 更新・削除の処理全体、トランザクション、rollbackを説明する
+2. CRUDを類似課題で自力実装できるか確認する
+3. コードスタイルと不要importを整理する
+4. ファイル分割と `APIRouter` を行う
+5. pytestを追加する
 
 ### 基礎練習プロジェクトの完了条件
 
