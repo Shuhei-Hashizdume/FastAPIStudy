@@ -87,6 +87,76 @@ def test_get_book():
     }
 
 
+# 全件取得
+def test_show_books():
+    first_response = client.post(
+        "/books",
+        json={
+            "title": "1冊目",
+            "author": "著者A",
+        },
+    )
+    assert first_response.status_code == 201
+
+    second_response = client.post(
+        "/books",
+        json={
+            "title": "2冊目",
+            "author": "著者B",
+        },
+    )
+
+    assert second_response.status_code == 201
+
+    first_book = first_response.json()
+    second_book = second_response.json()
+
+    response = client.get("/books")
+
+    assert response.status_code == 200
+    assert response.json() == [first_book, second_book]
+
+
+# 条件による一部取得
+def test_show_books_by_author():
+    first_response = client.post(
+        "/books",
+        json={
+            "title": "著者Aの1冊目",
+            "author": "著者A",
+        },
+    )
+    assert first_response.status_code == 201
+
+    second_response = client.post(
+        "/books",
+        json={
+            "title": "著者Bの1冊目",
+            "author": "著者B",
+        },
+    )
+
+    assert second_response.status_code == 201
+
+    third_response = client.post(
+        "/books",
+        json={
+            "title": "著者Aの2冊目",
+            "author": "著者A",
+        },
+    )
+
+    assert third_response.status_code == 201
+
+    first_book = first_response.json()
+    third_book = third_response.json()
+
+    response = client.get("/books", params={"author": "著者A"})
+
+    assert response.status_code == 200
+    assert response.json() == [first_book, third_book]
+
+
 # 取得　異常系
 def test_get_book_not_found():
     response = client.get("/books/9999999")
@@ -95,6 +165,7 @@ def test_get_book_not_found():
     assert response.json() == {"detail": "該当する本がありません。"}
 
 
+# 更新　正常系
 def test_update_book_title():
     create_response = client.post(
         "/books",
@@ -120,6 +191,7 @@ def test_update_book_title():
     }
 
 
+# 削除　正常系
 def test_delete_book():
     create_response = client.post(
         "/books",

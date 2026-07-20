@@ -24,15 +24,20 @@ FastAPI、Pydantic、SQLAlchemy、SQLiteを使い、Web APIとデータベース
 - DBモデルとレスポンス用Pydanticモデルを分離し、`from_attributes` を設定済み
 - 1件と複数件のレスポンス型を使い分け、書籍1件のレスポンス構造を統一済み
 - DELETEは204・本文なしとし、404を含めて動作確認済み
+- DB接続、DBモデル、Pydanticスキーマ、Router、FastAPIアプリ本体をファイル分割済み
+- `APIRouter` で書籍APIをFastAPIアプリへ登録済み
+- テスト用インメモリDBと `TestClient` を使い、CRUDと著者絞り込みを含む9件のpytestが成功
+- `DATABASE_URL` を環境変数から読む構成とし、未設定時のSQLite初期値を用意済み
+- `requirements.txt` とREADMEにより、環境構築、起動、テスト、API仕様を他の人が確認できる
 - GitHubリポジトリ `Shuhei-Hashizdume/FastAPIStudy` へ接続し、開発履歴の記録を開始済み
 
 ### 次の改善
 
-1. 更新・削除の処理全体、トランザクション、rollbackを説明する
-2. CRUDを類似課題で自力実装できるか確認する
-3. コードスタイルと不要importを整理する
-4. ファイル分割と `APIRouter` を行う
-5. pytestを追加する
+1. ログを追加し、例外発生時の原因を追跡できるようにする
+2. DB制約違反などの例外をテストする
+3. CRUD全体を別の要件から自力実装できるか確認する
+4. PostgreSQLとAlembicを導入する
+5. READMEに設計理由とトレードオフを追加する
 
 ### 基礎練習プロジェクトの完了条件
 

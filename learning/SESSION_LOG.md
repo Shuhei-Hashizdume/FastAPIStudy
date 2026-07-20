@@ -115,3 +115,52 @@
 ### 次回開始地点
 
 更新・削除APIの処理を最初から説明し、`commit()`、`refresh()`、`rollback()` と例外処理を理解確認する。
+
+## 2026-07-20：更新・削除からAPIテスト、環境設定まで
+
+### 実施内容
+
+- PATCHとDELETEを実装し、正常系・異常系を確認した
+- `commit()`、`refresh()`、`rollback()` とSessionの状態を復習した
+- Ruffの保存時フォーマットを導入し、不要importを削除した
+- DB接続、DBモデル、Pydanticスキーマ、書籍Router、FastAPIアプリ本体へファイルを分割した
+- `APIRouter` と `app.include_router()` を実装した
+- pytest、`TestClient`、テスト用インメモリDB、Dependency Override、autouse fixtureを導入した
+- POST、GET、PATCH、DELETE、著者絞り込みの正常系・異常系を含む9件のテストを成功させた
+- `venv`、`bin`、`python -m`、`requirements.txt` の役割を学び、依存バージョンを記録した
+- READMEに環境構築、起動、テスト、API仕様、ファイルの役割を追加した
+- `DATABASE_URL` を環境変数から読み、未設定時はSQLiteを使うようにした
+- 未経験者向けに、新しい概念の目的と用語を説明してから小さな1ステップずつ進める講義ルールを `AGENTS.md` へ追加した
+
+### 理解確認できた内容
+
+- `db.delete()` は削除予定にし、`db.commit()` がDBへ削除を確定する
+- 204は処理が成功し、返すレスポンスボディがないことを表す
+- 404は指定されたリソースが存在しないことを表す
+- commit失敗後のSessionは失敗状態のため、`rollback()` で正常な状態へ戻す必要がある
+- 各ファイルの責務と、`app.include_router()` がRouterのルートをFastAPIアプリへ登録すること
+- `response.status_code` はHTTPレスポンスオブジェクトの属性であり、`from_attributes=True` とは無関係であること
+- `response.json()` はJSONのレスポンスボディをPythonの辞書やリストへ変換すること
+- fixtureはテストの準備と片付けを担当し、`yield` がその境界になること
+- Dependency Overrideに登録すると、FastAPIがテスト中に `get_db` の代わりに `override_get_db` を使うこと
+- DELETEは204の確認だけでなく、再度GETして404を確認すると実際の削除を検証できること
+- 仮想環境と `requirements.txt` により、他の人が同じ依存関係を再現しやすくなること
+- 環境変数は、実行中のプロセスにOSから渡される設定値であること
+
+### 完了判定
+
+- 完了：更新APIと削除APIの基本実装・説明・正常系・異常系確認
+- 完了：Sessionとトランザクションの基本的な流れ
+- 完了：ファイル分割と `APIRouter`
+- 完了：pytestと `TestClient` による基本的な正常系・異常系テスト
+- 完了：テスト用DBと開発用DBの分離
+- 完了：環境変数によるDB接続設定の分離
+- 完了：READMEの環境構築、起動方法、API仕様
+- 経過観察：fixture、Dependency Override、環境変数の詳細な仕組み
+- 未完了：ログの実装とログを使った例外調査
+- 未完了：DB制約違反などを想定した例外テスト
+- 未完了：別の要件からCRUD全体を一貫して自力実装する確認
+
+### 次回開始地点
+
+ログが必要な理由を復習し、`print()` と `logging` の違い、ログレベル、機密情報を順番に学ぶ。その後、例外処理へ1箇所ずつログを追加する。
