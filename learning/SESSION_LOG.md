@@ -164,3 +164,69 @@
 ### 次回開始地点
 
 ログが必要な理由を復習し、`print()` と `logging` の違い、ログレベル、機密情報を順番に学ぶ。その後、例外処理へ1箇所ずつログを追加する。
+
+## 2026-07-24：ログ、DB例外処理、ページネーション、NOT NULL制約、Alembic
+
+### 実施内容
+
+- `logging.getLogger(__name__)`と`logger.exception()`をPOST・PATCH・DELETEのDB例外処理へ追加した
+- `HTTPException`はそのままFastAPIへ伝え、`SQLAlchemyError`ではログ、`rollback()`、安全な500レスポンスを行う構成にした
+- `IntegrityError`と一般的な`SQLAlchemyError`を分け、制約違反用とDB操作失敗用のログを実装した
+- `monkeypatch`で`Session.commit()`を一時的に置き換え、POST・PATCH・DELETEのDBエラーを再現した
+- `caplog`でログメッセージ、例外クラス、元の例外メッセージを検証した
+- 一覧取得へ`offset`、`limit`、`order_by(BookDB.book_id)`を追加した
+- ページネーションの正常系と、offset・limit不正時の422をテストした
+- `BookDB.title`と`BookDB.author`へ`nullable=False`を追加した
+- TestClientを通さずテスト用Sessionを直接使い、SQLiteのNOT NULL制約が`IntegrityError`を発生させることを確認した
+- `with`、コンテキストマネージャー、`pytest.raises`、`pytest.mark.parametrize`を学び、title・authorの2ケースを検証した
+- Alembic 1.18.5を導入し、`requirements.txt`へ追加した
+- `alembic init`で設定ファイルを作り、`DATABASE_URL`、`Base.metadata`、`render_as_batch=True`を設定した
+- Alembic導入前のbooksテーブルを表すベースラインを手動作成した
+- 既存`book.db`へベースラインを`stamp`し、NOT NULL制約追加マイグレーションを自動生成・レビュー・適用した
+- 既存の書籍データ1件が移行後も維持され、title・authorのNOT NULL設定が有効になったことを確認した
+- `/tmp`の空DBで`base → head → base → head`を実行し、upgrade・downgrade・空DB再現を確認した
+- FastAPI起動時の`Base.metadata.create_all()`を削除し、DB構造管理をAlembicへ統一した
+- READMEへマイグレーション手順とAlembic関連ファイルの役割を追加した
+
+### 理解確認できた内容
+
+- `logger.exception()`は開発者向けに例外種別、メッセージ、スタックトレースを残す
+- クライアントには内部情報を隠し、`HTTPException`で安全なエラーレスポンスを返す
+- `IntegrityError`はDBが報告した制約違反をSQLAlchemyがPython側へ伝える例外
+- モックは本物の処理をテスト中だけ置き換える仕組みであり、今回は意図的なDBエラー再現に使用した
+- `db.query(BookDB)`は検索条件を組み立てる`Query`オブジェクトを返し、`.all()`でSQLを実行する
+- ページネーションは、必要な範囲だけDBから取得してレスポンス量と処理負荷を抑える
+- PydanticはAPIの入口・出口、NOT NULL制約はDB保存時の最後の防御を担当する
+- `with`はコンテキストマネージャー側に定義された開始・終了処理を呼び、例外時にも片付けを行う
+- `pytest.raises`は期待した例外、`pytest.mark.parametrize`は複数の入力ケースを検証する
+- AlembicはレコードではなくDB構造と変更履歴を管理する
+- ベースラインは、空のDBから最初の構造を再現するための基準となる履歴
+- `stamp`はマイグレーション処理を実行せず、既存DBの現在地だけを記録する
+- マイグレーションファイルは変更手順、DB内の`alembic_version`は各DBの適用済み現在地を表す
+- `render_as_batch=True`はSQLiteでテーブル作り直し方式の変更コードを生成するために必要
+- `create_all()`は履歴を管理しないため、共有・本番DBの構造管理はAlembicへ任せる
+
+### 動作確認
+
+- pytest：18ケースすべて成功
+- Python構文確認：成功
+- 開発DB：`58b89d046d4a (head)`
+- 開発DB：title・authorのNOT NULL有効、既存書籍データ維持
+- 一時DB：空の状態から`upgrade head`成功
+- 一時DB：`downgrade -1`、`downgrade base`、再度`upgrade head`成功
+
+### 完了判定
+
+- 完了：ログの追加とスタックトレースによるDB例外調査の基礎
+- 完了：`IntegrityError`・`SQLAlchemyError`を想定した例外処理
+- 完了：fixture、モック、`caplog`、パラメータ化の基礎
+- 完了：ページネーションとクエリ効率の基礎
+- 完了：NOT NULL制約の実装と実DBによる制約違反テスト
+- 完了：Alembicのベースライン、`stamp`、upgrade、downgrade、空DB再現
+- 経過観察：Alembicの各ファイルとDB内の現在地を、次回以降も自力で説明できるか
+- 未完了：空文字列・文字数を含む入力バリデーション設計
+- 未完了：別要件からCRUD全体を一貫して自力実装する確認
+
+### 次回開始地点
+
+`title: str`が`None`と空文字列をどう扱うかを確認し、Pydanticの入力バリデーションとDB制約の役割を復習する。その後、タイトル・著者の文字数制約と422レスポンスを小さく実装・テストする。

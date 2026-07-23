@@ -27,7 +27,10 @@
 - 状態：基礎学習済み
 - 内容：SQLite接続、Engine、Session、モデル、登録、`add()`、`commit()`、`refresh()`、`rollback()`、`query()`、`filter()`、`all()`、`first()`
 - 理解確認済み：`commit()`、`refresh()`、`rollback()` の役割と、commit失敗後にrollbackが必要な理由
-- 今後の確認：制約違反などの具体的なDB例外とクエリ効率
+- 理解確認済み：`Query`オブジェクトへ条件、並び順、offset、limitを積み上げ、`.all()`でSQLを実行する流れ
+- 理解確認済み：`IntegrityError`はDB制約違反、`SQLAlchemyError`はSQLAlchemy関連例外の広い親クラス
+- 実装・確認済み：title・authorのNOT NULL制約、実際のSQLiteによる制約違反
+- 今後の確認：一意制約、外部キー、JOIN、インデックス
 
 ## IDによる1件取得と404
 
@@ -91,8 +94,11 @@
 - `TestClient` がHTTPリクエストを再現し、返ったHTTPレスポンスを検証する
 - `app.dependency_overrides[get_db] = override_get_db` で、テスト中の `get_db` をテスト用DBの依存関係に置き換えた
 - autouse fixtureで各テスト前後にテーブルを初期化し、テスト間の影響を防いだ
-- POST、GET、PATCH、DELETE、著者絞り込みの正常系・異常系を含む9件のテストを実行した
-- 今後の確認：fixtureの応用、モック、複雑なテストデータ管理
+- `monkeypatch`で`Session.commit()`を置き換え、POST・PATCH・DELETEのDBエラーを再現した
+- `caplog`でログメッセージ、例外クラス、元の例外メッセージを検証した
+- `pytest.raises`で実際の`IntegrityError`、`pytest.mark.parametrize`で複数入力を検証した
+- CRUD、絞り込み、ページネーション、422、404、500、DB制約を含む18ケースを実行した
+- 今後の確認：複雑なfixture設計とテストデータの共通化
 
 ## 仮想環境・依存関係・README
 
@@ -111,6 +117,31 @@
 
 ## ログ
 
-- 状態：学習開始前
-- 確認済み：ログがないとエラー発生箇所や原因調査が難しくなると考えた
-- 次回：`print()` と `logging`、ログレベル、機密情報、例外ログを段階的に学ぶ
+- 状態：基礎学習完了・経過観察
+- `logging.getLogger(__name__)`でモジュール名付きLoggerを取得した
+- `logger.exception()`を`except`内で使い、ERRORレベル、メッセージ、例外情報、スタックトレースを記録した
+- 開発者向けログには詳しい原因を残し、クライアント向けHTTPレスポンスには内部情報を出さない理由を説明した
+- POST・PATCH・DELETEのDBエラーをログと安全な500レスポンスへ分けた
+- `caplog`と`--log-cli-level=ERROR`で例外ログを確認した
+- 今後の確認：リクエストID、構造化ログ、運用環境での出力先
+
+## ページネーションとクエリ効率
+
+- 状態：基礎学習完了・経過観察
+- `offset`は読み飛ばす件数、`limit`は取得上限件数
+- `order_by(BookDB.book_id)`でページ間の並び順を安定させた
+- 著者条件をPython側ではなくDBクエリへ追加し、必要なレコードだけ取得する理由を説明した
+- `Query(ge=0)`、`Query(ge=1, le=100)`で不正なoffset・limitを422にした
+- 今後の確認：大量offsetの弱点、カーソル方式、実行計画、インデックス
+
+## DB制約とAlembic
+
+- 状態：基礎学習完了・経過観察
+- PydanticはAPIの入口・出口、NOT NULL制約はDB保存時のデータを守る
+- `Base.metadata.create_all()`は存在しないテーブルを作るが、既存テーブルの構造変更履歴は管理しない
+- AlembicのマイグレーションファイルはDB構造の変更手順、`alembic_version`は各DBの適用済み現在地を表す
+- ベースラインは空のDBから最初の構造を再現するための基準点
+- `stamp`は既存DBへ変更処理を実行せず、現在地だけを記録する
+- `upgrade()`と`downgrade()`を実装・レビューし、一時DBで`base → head → base → head`を確認した
+- SQLiteのテーブル変更に`render_as_batch=True`を使い、一時テーブルへのコピー方式を学んだ
+- 今後の確認：新しいカラムや制約を自力でマイグレーションし、PostgreSQLとの差を説明する

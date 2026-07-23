@@ -16,28 +16,28 @@
 | Python基本文法 | 基礎理解 | 基本文法、関数、クラス、例外処理を学習済み。実務形式での自力活用は今後確認 |
 | Git・GitHub基礎 | 基礎理解 | ローカル初期化、`.gitignore`、初回commit、GitHub接続、初回pushを実施済み。小さなコミットとチーム形式の運用は今後確認 |
 | FastAPI基本API | ヒントありで実装可能 | GET、POST、各種パラメータ、Pydantic入力のコード経験あり。自力での類似課題を今後確認 |
-| SQLAlchemy・SQLite基礎 | ヒントありで実装可能 | Session、CRUD操作、`commit()`、`refresh()`、`rollback()` を実装・説明。制約違反とクエリ効率は今後確認 |
+| SQLAlchemy・SQLite基礎 | ヒントありで実装可能 | Session、CRUD、トランザクション、NOT NULL制約、DB例外処理、ページネーションを実装・説明。外部キー・JOIN・インデックスは今後確認 |
 | ID取得・404 | ヒントありで実装可能 | `.first()` と `HTTPException` の実装あり。類似課題で定着確認が必要 |
 | `response_model` | ヒントありで実装可能 | `BookResponse` を設計し、POST・GET・PATCHへ設定。Swagger UIで正常系・異常系を確認済み |
 | APIレスポンス設計 | ヒントありで実装可能 | 1件・複数件を区別し、DBモデルとレスポンスモデルを分離。`from_attributes` を実装済み |
 | CRUD全体 | ヒントありで実装可能 | 更新・削除を実装し、検索からトランザクション、レスポンスまで説明。別要件からCRUD全体を自力設計する確認は未実施 |
 | ファイル分割・設計 | ヒントありで実装可能 | DB接続、DBモデル、Pydanticスキーマ、Router、アプリ本体へ分割し、責務を説明 |
-| APIテスト・pytest | ヒントありで実装可能 | `TestClient`、テスト用DB、Dependency Override、fixtureを使い9件のテストが成功。fixtureの応用とモックは今後確認 |
+| APIテスト・pytest | ヒントありで実装可能 | `TestClient`、テスト用DB、fixture、Dependency Override、モック、`caplog`、パラメータ化を使い18ケースが成功 |
 | 環境構築・設定管理 | 基礎理解 | `venv`、`requirements.txt`、READMEの構築手順、`DATABASE_URL` の環境変数化を実施。OS・プロセス・環境変数の関係は要復習 |
 | PostgreSQL | 未学習 | 現在はSQLiteを使用 |
-| Alembic | 未学習 | マイグレーション経験の記録なし |
+| Alembic | ヒントありで実装可能 | ベースライン、`stamp`、自動生成、SQLiteバッチ変更、upgrade・downgrade、空DB再現を実施。新規要件からの自力作成は今後確認 |
 | 認証・認可 | 未学習 | 実装・学習記録なし |
 | セキュリティ | 未学習 | 実務形式での確認なし |
 | Docker | 未学習 | 構成・学習記録なし |
 | CI/CD・デプロイ | 未学習 | 実践記録なし |
-| ログ・障害調査 | 学習中 | ログの必要性は考察済み。`logging`、ログレベル、例外ログの実装は次回学習 |
+| ログ・障害調査 | ヒントありで実装可能 | `logger.exception()`、スタックトレース、`IntegrityError`・`SQLAlchemyError`、`caplog`による確認を実施 |
 | PRでの説明・レビュー修正 | 学習中 | PR基礎は学習済み。実務形式の説明と修正は未確認 |
 
 ## 現在の総合判定
 
-FastAPIとSQLiteのCRUD APIについて、責務分割、基本的なトランザクション、正常系・異常系のAPIテストまで進んだ段階。就職応募用の完成ポートフォリオや、ジュニアとして実務参加できる段階にはまだ到達していない。
+FastAPIとSQLiteのCRUD APIについて、責務分割、トランザクション、ログ、DB例外処理、ページネーション、NOT NULL制約、Alembic、正常系・異常系テストまで進んだ段階。就職応募用の完成ポートフォリオや、ジュニアとして実務参加できる段階にはまだ到達していない。
 
-直近ではログと例外調査を学び、テストとログの両方で不具合を調べられる状態を目指す。その後、DB制約、PostgreSQL、Alembic、認証、Dockerを段階的に実務形式へつなげる。
+直近では空文字列や文字数を含む入力バリデーションとエラーレスポンスを設計する。その後、一意制約・外部キー・JOIN・インデックス、PostgreSQL、認証、Dockerを段階的に実務形式へつなげる。
 
 ## 最終評価の考え方
 

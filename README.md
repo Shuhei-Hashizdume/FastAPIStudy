@@ -49,6 +49,12 @@ python -m venv venv
 ./venv/bin/python -m pip install -r requirements.txt
 ```
 
+Alembicのマイグレーションを適用し、最新のDB構造を作成します。
+
+```bash
+./venv/bin/alembic upgrade head
+```
+
 ## 環境変数
 
 DBの接続先は、`DATABASE_URL`環境変数で変更できます。
@@ -62,6 +68,31 @@ DATABASE_URL="sqlite:///other.db" ./venv/bin/python -m uvicorn main:app --reload
 ```
 
 認証情報や秘密鍵などの機密情報は、コードやREADMEへ直接記載しないでください。
+
+## DBマイグレーション
+
+DB構造の作成・変更履歴はAlembicで管理します。FastAPIの起動時には
+`Base.metadata.create_all()`を実行しないため、初回起動前やマイグレーション追加後に次を実行します。
+
+```bash
+./venv/bin/alembic upgrade head
+```
+
+現在適用されているrevisionを確認します。
+
+```bash
+./venv/bin/alembic current
+```
+
+マイグレーションファイルを自動生成する場合は、SQLAlchemyモデルを変更した後に次を実行します。
+生成された`upgrade()`と`downgrade()`は、適用前に必ずレビューします。
+
+```bash
+./venv/bin/alembic revision --autogenerate -m "変更内容"
+```
+
+既存の`book.db`は、Alembic導入時のベースラインへ`stamp`したうえでNOT NULL制約を適用済みです。
+新しい空のDBでは、ベースラインから最新revisionまでを`upgrade head`で再現できます。
 
 ## アプリの起動
 
@@ -92,7 +123,7 @@ pytestでAPIテストを実行します。
 | HTTPメソッド | パス               | 処理                                 | 主なステータスコード |
 | ------------ | ------------------ | ------------------------------------ | -------------------- |
 | POST         | `/books`           | 書籍を登録                           | 201、422             |
-| GET          | `/books`           | 書籍を全件取得、または著者で絞り込み | 200                  |
+| GET          | `/books`           | 書籍一覧取得、著者絞り込み、ページネーション | 200、422        |
 | GET          | `/books/{book_id}` | IDを指定して書籍を1件取得            | 200、404             |
 | PATCH        | `/books/{book_id}` | IDを指定して書籍を部分更新           | 200、404、422        |
 | DELETE       | `/books/{book_id}` | IDを指定して書籍を削除               | 204、404             |
@@ -109,6 +140,12 @@ pytestでAPIテストを実行します。
 
 著者で絞り込む場合は、`author`クエリパラメータを使用します。例：`GET /books?author=著者A`
 
+ページネーションには`offset`と`limit`を使用します。`offset`は0以上、`limit`は1以上100以下です。
+
+```text
+GET /books?offset=0&limit=20
+```
+
 ## 現在のアプリ
 
 FastAPI、SQLAlchemy、SQLiteを使用した書籍管理APIです。書籍の登録、取得、部分更新、削除に対応して
@@ -116,10 +153,12 @@ FastAPI、SQLAlchemy、SQLiteを使用した書籍管理APIです。書籍の登
 
 | ファイル              | 役割                                                      |
 | --------------------- | --------------------------------------------------------- |
-| `main.py`             | FastAPIアプリの作成、書籍用Routerの登録、DBテーブルの作成 |
+| `main.py`             | FastAPIアプリの作成、書籍用Routerの登録                    |
 | `database.py`         | SQLiteへの接続設定とSession管理                           |
 | `models.py`           | SQLAlchemyによるDBモデルの定義                            |
 | `schemas.py`          | Pydanticによるリクエスト・レスポンススキーマの定義        |
 | `routers/books.py`    | 書籍APIのエンドポイント                                   |
 | `tests/test_books.py` | 書籍APIの正常系・異常系テスト                             |
+| `alembic/`            | DB構造の変更履歴とマイグレーション実行設定                 |
+| `alembic.ini`         | Alembic全体の設定                                          |
 | `requirements.txt`    | 必要なPythonパッケージとバージョン                        |
