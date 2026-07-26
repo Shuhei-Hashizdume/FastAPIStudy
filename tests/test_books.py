@@ -8,6 +8,9 @@ from models import BookDB
 from database import Base, get_db
 from main import app
 
+TEST_ISBN_1 = "9780000000002"
+TEST_ISBN_2 = "9780000000019"
+TEST_ISBN_3 = "9780000000026"
 
 test_engine = create_engine(
     "sqlite://",
@@ -45,6 +48,7 @@ def test_create_book():
         json={
             "title": "pytest入門",
             "author": "テスト太郎",
+            "isbn": "9781234567890",
         },
     )
 
@@ -53,6 +57,7 @@ def test_create_book():
         "book_id": 1,
         "title": "pytest入門",
         "author": "テスト太郎",
+        "isbn": "9781234567890",
     }
 
 
@@ -60,9 +65,75 @@ def test_create_book():
 def test_create_book_without_author():
     response = client.post(
         "/books",
-        json={"title": "著者のいない本"},
+        json={
+            "title": "著者のいない本",
+            "isbn": TEST_ISBN_1,
+        },
     )
     assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["body", "author"]
+
+
+# 登録　  空文字テスト
+@pytest.mark.parametrize(
+    "title, author, error_field",
+    [
+        ("", "テスト太郎", "title"),
+        ("テスト太郎", "", "author"),
+    ],
+)
+def test_create_book_with_empty_error(title, author, error_field):
+    response = client.post(
+        "/books",
+        json={
+            "title": title,
+            "author": author,
+            "isbn": TEST_ISBN_1,
+        },
+    )
+
+    assert response.status_code == 422
+    response_body = response.json()
+    assert response_body["detail"][0]["loc"] == ["body", error_field]
+
+
+# 　登録
+@pytest.mark.parametrize(
+    "title, author, error_field",
+    [
+        ("A" * 201, "テスト太郎", "title"),
+        ("テスト本", "A" * 101, "author"),
+    ],
+)
+def test_create_book_with_too_long_field(title, author, error_field):
+    response = client.post(
+        "/books",
+        json={
+            "title": title,
+            "author": author,
+            "isbn": TEST_ISBN_1,
+        },
+    )
+
+    assert response.status_code == 422
+    response_body = response.json()
+    assert response_body["detail"][0]["loc"] == ["body", error_field]
+    assert response_body["detail"][0]["type"] == "string_too_long"
+
+
+def test_create_book_with_max_length_fields():
+    response = client.post(
+        "/books",
+        json={
+            "title": "A" * 200,
+            "author": "B" * 100,
+            "isbn": TEST_ISBN_1,
+        },
+    )
+
+    assert response.status_code == 201
+    assert response.json()["title"] == "A" * 200
+    assert response.json()["author"] == "B" * 100
 
 
 # 取得
@@ -72,6 +143,7 @@ def test_get_book():
         json={
             "title": "GETテスト用の本",
             "author": "取得太郎",
+            "isbn": TEST_ISBN_1,
         },
     )
 
@@ -85,6 +157,7 @@ def test_get_book():
         "book_id": book_id,
         "title": "GETテスト用の本",
         "author": "取得太郎",
+        "isbn": TEST_ISBN_1,
     }
 
 
@@ -95,6 +168,7 @@ def test_show_books():
         json={
             "title": "1冊目",
             "author": "著者A",
+            "isbn": TEST_ISBN_1,
         },
     )
     assert first_response.status_code == 201
@@ -104,6 +178,7 @@ def test_show_books():
         json={
             "title": "2冊目",
             "author": "著者B",
+            "isbn": TEST_ISBN_2,
         },
     )
 
@@ -125,6 +200,7 @@ def test_show_books_with_pagination():
         json={
             "title": "ページネーション本A",
             "author": "著者A",
+            "isbn": TEST_ISBN_1,
         },
     )
 
@@ -135,6 +211,7 @@ def test_show_books_with_pagination():
         json={
             "title": "ページネーション本B",
             "author": "著者B",
+            "isbn": TEST_ISBN_2,
         },
     )
 
@@ -145,6 +222,7 @@ def test_show_books_with_pagination():
         json={
             "title": "ページネーション本C",
             "author": "著者C",
+            "isbn": TEST_ISBN_3,
         },
     )
 
@@ -192,6 +270,7 @@ def test_show_books_by_author():
         json={
             "title": "著者Aの1冊目",
             "author": "著者A",
+            "isbn": TEST_ISBN_1,
         },
     )
     assert first_response.status_code == 201
@@ -201,6 +280,7 @@ def test_show_books_by_author():
         json={
             "title": "著者Bの1冊目",
             "author": "著者B",
+            "isbn": TEST_ISBN_2,
         },
     )
 
@@ -211,6 +291,7 @@ def test_show_books_by_author():
         json={
             "title": "著者Aの2冊目",
             "author": "著者A",
+            "isbn": TEST_ISBN_3,
         },
     )
 
@@ -240,6 +321,7 @@ def test_update_book_title():
         json={
             "title": "更新前タイトル",
             "author": "変更しない著者",
+            "isbn": TEST_ISBN_1,
         },
     )
     assert create_response.status_code == 201
@@ -256,6 +338,7 @@ def test_update_book_title():
         "book_id": book_id,
         "title": "変更後のタイトル",
         "author": "変更しない著者",
+        "isbn": TEST_ISBN_1,
     }
 
 
@@ -266,6 +349,7 @@ def test_delete_book():
         json={
             "title": "削除用の本",
             "author": "削除太郎",
+            "isbn": TEST_ISBN_1,
         },
     )
     assert create_response.status_code == 201
@@ -287,7 +371,7 @@ def test_delete_book_not_found():
     assert response.json() == {"detail": "該当する本がありません。"}
 
 
-# 登録　DBエラー　　integrity
+# 登録　DBエラー　　モックテスト
 def test_create_book_db_integrity_error(monkeypatch, caplog):
     def raise_commit_error(self):
         raise IntegrityError(
@@ -298,7 +382,12 @@ def test_create_book_db_integrity_error(monkeypatch, caplog):
 
     monkeypatch.setattr(Session, "commit", raise_commit_error)
     response = client.post(
-        "/books", json={"title": "DBエラーテスト", "author": "テスト太郎"}
+        "/books",
+        json={
+            "title": "DBエラーテスト",
+            "author": "テスト太郎",
+            "isbn": TEST_ISBN_1,
+        },
     )
 
     assert response.status_code == 500
@@ -320,6 +409,7 @@ def test_create_book_sqlalchemy_error(monkeypatch, caplog):
         json={
             "title": "一般DBエラーテスト",
             "author": "テスト太郎",
+            "isbn": TEST_ISBN_1,
         },
     )
 
@@ -337,6 +427,7 @@ def test_update_book_sqlalchemy_error(monkeypatch, caplog):
         json={
             "title": "更新前タイトル",
             "author": "更新エラーテスト著者",
+            "isbn": TEST_ISBN_1,
         },
     )
 
@@ -364,7 +455,12 @@ def test_update_book_sqlalchemy_error(monkeypatch, caplog):
 # 削除　モックテスト
 def test_delete_book_sqlalchemy_error(monkeypatch, caplog):
     api_post_response = client.post(
-        "/books", json={"title": "テストA", "author": "著者A"}
+        "/books",
+        json={
+            "title": "テストA",
+            "author": "著者A",
+            "isbn": TEST_ISBN_1,
+        },
     )
 
     assert api_post_response.status_code == 201
@@ -385,6 +481,7 @@ def test_delete_book_sqlalchemy_error(monkeypatch, caplog):
     assert "SQLAlchemyError" in caplog.text
 
 
+# 登録　　null　パラメータ化　テスト
 @pytest.mark.parametrize(
     "title, author",
     [
@@ -395,6 +492,370 @@ def test_delete_book_sqlalchemy_error(monkeypatch, caplog):
 def test_book_not_null_constraint(title, author):
     with TestingSessionLocal() as session:
         with pytest.raises(IntegrityError):
-            book_db = BookDB(title=title, author=author)
+            book_db = BookDB(title=title, author=author, isbn=TEST_ISBN_1)
             session.add(book_db)
             session.commit()
+
+
+def test_book_isbn_not_null_constraint():
+    with TestingSessionLocal() as session:
+        book_db = BookDB(title="テストA", author="著者A", isbn=None)
+        session.add(book_db)
+        with pytest.raises(IntegrityError):
+            session.commit()
+        session.rollback()
+
+
+@pytest.mark.parametrize(
+    "update_body, error_field",
+    [
+        ({"title": ""}, "title"),
+        ({"author": ""}, "author"),
+    ],
+)
+def test_update_book_with_empty_error(update_body, error_field):
+    post_response = client.post(
+        "/books",
+        json={
+            "title": "テスト本",
+            "author": "著者A",
+            "isbn": TEST_ISBN_1,
+        },
+    )
+
+    assert post_response.status_code == 201
+
+    book_id = post_response.json()["book_id"]
+
+    response = client.patch(
+        f"/books/{book_id}",
+        json=update_body,
+    )
+
+    assert response.status_code == 422
+    response_body = response.json()
+    assert response_body["detail"][0]["loc"] == ["body", error_field]
+
+    get_response = client.get(f"/books/{book_id}")
+    assert get_response.status_code == 200
+    assert get_response.json()["title"] == "テスト本"
+    assert get_response.json()["author"] == "著者A"
+
+
+@pytest.mark.parametrize(
+    "update_body, error_field",
+    [
+        ({"title": "A" * 201}, "title"),
+        ({"author": "A" * 101}, "author"),
+    ],
+)
+def test_update_book_with_too_long_field(update_body, error_field):
+    post_response = client.post(
+        "/books",
+        json={
+            "title": "テストA",
+            "author": "著者A",
+            "isbn": TEST_ISBN_1,
+        },
+    )
+
+    assert post_response.status_code == 201
+
+    book_id = post_response.json()["book_id"]
+
+    response = client.patch(
+        f"/books/{book_id}",
+        json=update_body,
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["body", error_field]
+    assert response.json()["detail"][0]["type"] == "string_too_long"
+
+    get_response = client.get(f"/books/{book_id}")
+    assert get_response.status_code == 200
+    assert get_response.json()["title"] == "テストA"
+    assert get_response.json()["author"] == "著者A"
+
+
+@pytest.mark.parametrize(
+    "title, author, error_field",
+    [
+        (None, "著者A", "title"),
+        ("テストA", None, "author"),
+    ],
+)
+def test_create_book_with_null_field(title, author, error_field):
+    response = client.post(
+        "/books",
+        json={
+            "title": title,
+            "author": author,
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["body", error_field]
+
+
+@pytest.mark.parametrize(
+    "update_body, expected_title, expected_author",
+    [
+        ({"title": None, "author": "変更後著者"}, "変更前タイトル", "変更後著者"),
+        ({"title": "変更後タイトル", "author": None}, "変更後タイトル", "変更前著者"),
+    ],
+)
+def test_update_book_with_null(update_body, expected_title, expected_author):
+    post_response = client.post(
+        "/books",
+        json={
+            "title": "変更前タイトル",
+            "author": "変更前著者",
+            "isbn": TEST_ISBN_1,
+        },
+    )
+
+    assert post_response.status_code == 201
+
+    book_id = post_response.json()["book_id"]
+
+    response = client.patch(
+        f"/books/{book_id}",
+        json=update_body,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["title"] == expected_title
+    assert response.json()["author"] == expected_author
+
+    get_response = client.get(f"/books/{book_id}")
+
+    assert get_response.status_code == 200
+    assert get_response.json()["title"] == expected_title
+    assert get_response.json()["author"] == expected_author
+
+
+@pytest.mark.parametrize(
+    "request_body, error_field",
+    [
+        ({"title": "   ", "author": "著者A"}, "title"),
+        ({"title": "テストB", "author": "   "}, "author"),
+    ],
+)
+def test_create_book_with_whitespace_field(request_body, error_field):
+    response = client.post(
+        "/books",
+        json=request_body,
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["body", error_field]
+    assert response.json()["detail"][0]["type"] == "string_too_short"
+
+
+@pytest.mark.parametrize(
+    "update_body, error_field",
+    [
+        ({"title": "   ", "author": "変更後著者"}, "title"),
+        ({"title": "変更後タイトル", "author": "   "}, "author"),
+    ],
+)
+def test_update_book_with_whitespace_field(update_body, error_field):
+    post_response = client.post(
+        "/books",
+        json={
+            "title": "変更前タイトル",
+            "author": "変更前著者",
+            "isbn": TEST_ISBN_1,
+        },
+    )
+
+    assert post_response.status_code == 201
+
+    book_id = post_response.json()["book_id"]
+
+    response = client.patch(f"/books/{book_id}", json=update_body)
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["body", error_field]
+    assert response.json()["detail"][0]["type"] == "string_too_short"
+
+    get_response = client.get(f"/books/{book_id}")
+
+    assert get_response.status_code == 200
+    assert get_response.json()["title"] == "変更前タイトル"
+    assert get_response.json()["author"] == "変更前著者"
+
+
+def test_create_book_with_surrounding_whitespace():
+    response = client.post(
+        "/books",
+        json={
+            "title": "  Python入門  ",
+            "author": "  山田太郎  ",
+            "isbn": TEST_ISBN_1,
+        },
+    )
+
+    assert response.status_code == 201
+    assert response.json()["title"] == "Python入門"
+    assert response.json()["author"] == "山田太郎"
+
+
+def test_create_book_with_isbn():
+    post_response = client.post(
+        "/books",
+        json={
+            "title": "ISBNテスト本",
+            "author": "テスト著者",
+            "isbn": TEST_ISBN_2,
+        },
+    )
+    assert post_response.status_code == 201
+    assert post_response.json()["isbn"] == TEST_ISBN_2
+
+    book_id = post_response.json()["book_id"]
+
+    response = client.get(f"/books/{book_id}")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "book_id": book_id,
+        "title": "ISBNテスト本",
+        "author": "テスト著者",
+        "isbn": TEST_ISBN_2,
+    }
+
+
+def test_create_book_with_duplicate_isbn():
+    post_response = client.post(
+        "/books", json={"title": "テストA", "author": "著者A", "isbn": "9780192837465"}
+    )
+
+    assert post_response.status_code == 201
+
+    response = client.post(
+        "/books", json={"title": "テストB", "author": "著者B", "isbn": "9780192837465"}
+    )
+
+    assert response.status_code == 409
+    assert response.json() == {"detail": "同じISBNの書籍がすでに登録されています。"}
+
+
+def test_book_isbn_unique_constraint():
+    with TestingSessionLocal() as session:
+        first_book = BookDB(title="テストA", author="著者A", isbn="1234567890123")
+        session.add(first_book)
+        session.commit()
+
+        second_book = BookDB(title="テストB", author="著者B", isbn="1234567890123")
+        session.add(second_book)
+
+        with pytest.raises(IntegrityError):
+            session.commit()
+        session.rollback()
+
+
+@pytest.mark.parametrize(
+    "isbn, expected_error_type",
+    [
+        ("123456789012", "string_too_short"),
+        ("12345678901234", "string_too_long"),
+        ("123456789012A", "string_pattern_mismatch"),
+    ],
+)
+def test_create_book_with_invalid_isbn(isbn, expected_error_type):
+    response = client.post(
+        "/books",
+        json={
+            "title": "テストA",
+            "author": "著者A",
+            "isbn": isbn,
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["type"] == expected_error_type
+
+
+def test_update_book_isbn():
+    post_response = client.post(
+        "/books",
+        json={
+            "title": "テストA",
+            "author": "著者A",
+            "isbn": TEST_ISBN_1,
+        },
+    )
+
+    assert post_response.status_code == 201
+    book_id = post_response.json()["book_id"]
+
+    response = client.patch(
+        f"/books/{book_id}",
+        json={
+            "isbn": TEST_ISBN_2,
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["isbn"] == TEST_ISBN_2
+
+    get_response = client.get(f"/books/{book_id}")
+
+    assert get_response.status_code == 200
+    assert get_response.json()["isbn"] == TEST_ISBN_2
+
+
+def test_update_book_with_duplicate_isbn():
+    first_post_response = client.post(
+        "/books",
+        json={
+            "title": "テストA",
+            "author": "著者A",
+            "isbn": "1234567890123",
+        },
+    )
+
+    assert first_post_response.status_code == 201
+
+    second_post_response = client.post(
+        "/books",
+        json={
+            "title": "テストB",
+            "author": "著者B",
+            "isbn": "2345678901234",
+        },
+    )
+
+    assert second_post_response.status_code == 201
+
+    book_id = second_post_response.json()["book_id"]
+
+    response = client.patch(
+        f"/books/{book_id}",
+        json={
+            "isbn": "1234567890123",
+        },
+    )
+
+    assert response.status_code == 409
+    assert response.json() == {"detail": "同じISBNの書籍がすでに登録されています。"}
+
+    get_response = client.get(f"/books/{book_id}")
+    assert get_response.status_code == 200
+    assert get_response.json()["isbn"] == "2345678901234"
+
+
+def test_create_book_without_isbn():
+    response = client.post(
+        "/books",
+        json={
+            "title": "ISBNなしの本",
+            "author": "テスト著者",
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["type"] == "missing"
+    assert response.json()["detail"][0]["loc"] == ["body", "isbn"]

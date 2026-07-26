@@ -14,7 +14,13 @@ router = APIRouter()
 @router.post("/books", status_code=201, response_model=BookResponse)
 def add_book(book: BookRequest, db: Session = Depends(get_db)):
     try:
-        book_db = BookDB(title=book.title, author=book.author)
+        if book.isbn is not None:
+            existing_book = db.query(BookDB).filter(BookDB.isbn == book.isbn).first()
+            if existing_book is not None:
+                raise HTTPException(
+                    status_code=409, detail="同じISBNの書籍がすでに登録されています。"
+                )
+        book_db = BookDB(title=book.title, author=book.author, isbn=book.isbn)
 
         db.add(book_db)
         db.commit()
@@ -68,10 +74,22 @@ def update_book(book_id: int, book: BookUpdate, db: Session = Depends(get_db)):
         target_book = db.query(BookDB).filter(BookDB.book_id == book_id).first()
         if target_book is None:
             raise HTTPException(status_code=404, detail="該当する本がありません。")
+        if book.isbn is not None:
+            existing_book = db.query(BookDB).filter(BookDB.isbn == book.isbn).first()
+            if (
+                existing_book is not None
+                and existing_book.book_id != target_book.book_id
+            ):
+                raise HTTPException(
+                    status_code=409,
+                    detail="同じISBNの書籍がすでに登録されています。",
+                )
+            target_book.isbn = book.isbn
         if book.title is not None:
             target_book.title = book.title
         if book.author is not None:
             target_book.author = book.author
+
         db.commit()
         db.refresh(target_book)
         return target_book

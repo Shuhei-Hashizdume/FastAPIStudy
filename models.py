@@ -7,3 +7,4 @@ class BookDB(Base):
     book_id = Column(Integer, primary_key=True)
     title = Column(String, nullable=False)
     author = Column(String, nullable=False)
+    isbn = Column(String, nullable=False, unique=True)

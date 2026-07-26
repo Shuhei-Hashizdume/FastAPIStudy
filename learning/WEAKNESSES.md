@@ -10,16 +10,18 @@
 - fixture、Dependency Override、テスト用DBの役割を切り分けて説明する
 - `nullable=True`とNOT NULL無効、`nullable=False`とNOT NULL有効の対応を混同せず説明する
 - Alembicのベースライン、`stamp`、マイグレーションファイル、DB内の`alembic_version`の関係を説明する
+- HTTPレスポンスオブジェクトと、`status_code`・JSONボディを区別する
+- PATCHのISBN重複確認で更新対象自身を除外する理由を説明する
 
 ## 学習中
 
-- `str`、`None`、空文字列を区別した入力バリデーション
-- PATCHで項目未指定と不正な入力を区別する設計
+- 主キーとUNIQUE制約の共通点・役割の違い
+- API側の重複確認とDBのUNIQUE制約を併用する理由
 - CRUD全体を別の要件から一貫して自力実装する
 
 ## 今後学習
 
-- 一意制約、外部キー、JOIN、インデックス
+- インデックス、外部キー、JOIN
 - PostgreSQL
 - 認証・認可
 - Docker、CI、デプロイ
@@ -36,6 +38,11 @@
 - ページネーションの`offset`、`limit`、並び順
 - Alembicの`revision`、`upgrade`、`downgrade`
 - 正常系だけでなく異常系と全件テストまで確認する習慣
+- `Field`による文字数制約と、空文字列・`null`・必須項目不足の422検証
+- `ConfigDict(str_strip_whitespace=True)`による前後空白の除去
+- PATCHで項目未指定・`null`・不正な空文字列を区別する設計
+- ISBNの入力検証、409、DBのUNIQUE・NOT NULL制約
+- nullableなカラム追加からNOT NULL化へ進める段階的マイグレーション
 
 今後の類似課題で、ヒントなしに設計・実装・説明できるか確認する。
 

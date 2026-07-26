@@ -29,8 +29,10 @@
 - 理解確認済み：`commit()`、`refresh()`、`rollback()` の役割と、commit失敗後にrollbackが必要な理由
 - 理解確認済み：`Query`オブジェクトへ条件、並び順、offset、limitを積み上げ、`.all()`でSQLを実行する流れ
 - 理解確認済み：`IntegrityError`はDB制約違反、`SQLAlchemyError`はSQLAlchemy関連例外の広い親クラス
-- 実装・確認済み：title・authorのNOT NULL制約、実際のSQLiteによる制約違反
-- 今後の確認：一意制約、外部キー、JOIN、インデックス
+- 実装・確認済み：title・author・isbnのNOT NULL制約、isbnのUNIQUE制約、実際のSQLiteによる制約違反
+- 理解確認済み：主キーは行を識別する中心的なキー、UNIQUE制約は指定カラムの重複を禁止する
+- 理解確認済み：API側の事前確認は分かりやすい409を返し、DB制約はAPIを通らない書き込みも防ぐ
+- 今後の確認：外部キー、JOIN、インデックス
 
 ## IDによる1件取得と404
 
@@ -97,7 +99,7 @@
 - `monkeypatch`で`Session.commit()`を置き換え、POST・PATCH・DELETEのDBエラーを再現した
 - `caplog`でログメッセージ、例外クラス、元の例外メッセージを検証した
 - `pytest.raises`で実際の`IntegrityError`、`pytest.mark.parametrize`で複数入力を検証した
-- CRUD、絞り込み、ページネーション、422、404、500、DB制約を含む18ケースを実行した
+- CRUD、絞り込み、ページネーション、入力境界値、422、404、409、500、DB制約を含む46ケースを実行した
 - 今後の確認：複雑なfixture設計とテストデータの共通化
 
 ## 仮想環境・依存関係・README
@@ -145,3 +147,23 @@
 - `upgrade()`と`downgrade()`を実装・レビューし、一時DBで`base → head → base → head`を確認した
 - SQLiteのテーブル変更に`render_as_batch=True`を使い、一時テーブルへのコピー方式を学んだ
 - 今後の確認：新しいカラムや制約を自力でマイグレーションし、PostgreSQLとの差を説明する
+
+## 入力バリデーションとISBN
+
+- 状態：基礎学習完了・経過観察
+- `Field(min_length=..., max_length=...)`でtitle・authorの文字数を制限した
+- `ConfigDict(str_strip_whitespace=True)`で文字列の前後の空白を除去し、空白だけの入力を空文字列として拒否した
+- FastAPIはPydanticの検証に失敗したリクエストについて、エンドポイント関数を呼ばずに422レスポンスを生成する
+- POSTではISBNを必須の13桁数字とし、PATCHでは未指定を許可しつつ、指定された場合だけ同じ制約を適用した
+- 422は入力形式・型・必須条件への違反、409は正しい形式の入力が現在のDB状態と競合した場合に使用した
+- `pattern=r"^[0-9]+$"`は先頭から末尾までASCII数字だけで構成されることを検証する
+- 現在の検証は13桁数字の形式確認であり、ISBNのチェックディジットまでは検証していない
+
+## ISBNの段階的マイグレーション
+
+- 状態：基礎学習完了・経過観察
+- 既存行があるテーブルへ必須カラムを一度に追加すると、既存行に値がなく制約違反になる
+- そのため「nullableなISBNカラムとUNIQUE制約を追加」「既存データへISBNを設定」「ISBNをNOT NULL化」の順で移行した
+- `58bb8935c9ad`でISBNカラムとUNIQUE制約、`de1c8b4db0bb`でNOT NULL制約を追加した
+- upgrade・downgradeの往復、開発DBのhead更新、`alembic check`を確認した
+- 今後の確認：別の既存データ移行でも、安全な段階を自力で設計できるか確認する
