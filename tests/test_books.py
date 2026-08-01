@@ -1,10 +1,10 @@
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, event
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from models import BookDB
+from models import BookDB, PublisherDB
 from database import Base, get_db
 from main import app
 
@@ -17,6 +17,14 @@ test_engine = create_engine(
     connect_args={"check_same_thread": False},
     poolclass=StaticPool,
 )
+
+
+@event.listens_for(test_engine, "connect")
+def enable_test_sqlite_foreign_keys(dbapi_connection, _connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
+
 
 TestingSessionLocal = sessionmaker(bind=test_engine)
 
@@ -58,6 +66,7 @@ def test_create_book():
         "title": "pytest入門",
         "author": "テスト太郎",
         "isbn": "9781234567890",
+        "publisher_name": None,
     }
 
 
@@ -158,6 +167,7 @@ def test_get_book():
         "title": "GETテスト用の本",
         "author": "取得太郎",
         "isbn": TEST_ISBN_1,
+        "publisher_name": None,
     }
 
 
@@ -339,6 +349,7 @@ def test_update_book_title():
         "title": "変更後のタイトル",
         "author": "変更しない著者",
         "isbn": TEST_ISBN_1,
+        "publisher_name": None,
     }
 
 
@@ -724,6 +735,7 @@ def test_create_book_with_isbn():
         "title": "ISBNテスト本",
         "author": "テスト著者",
         "isbn": TEST_ISBN_2,
+        "publisher_name": None,
     }
 
 
@@ -859,3 +871,174 @@ def test_create_book_without_isbn():
     assert response.status_code == 422
     assert response.json()["detail"][0]["type"] == "missing"
     assert response.json()["detail"][0]["loc"] == ["body", "isbn"]
+
+
+def test_book_author_index():
+    inspector = inspect(test_engine)
+    indexes = inspector.get_indexes("books")
+    index_names = [index["name"] for index in indexes]
+    index_columns = [index["column_names"] for index in indexes]
+
+    assert "ix_books_author" in index_names
+    assert ["author"] in index_columns
+
+
+def test_book_publisher_relationship():
+    with TestingSessionLocal() as session:
+        publisher = PublisherDB(name="技術出版")
+        session.add(publisher)
+        session.commit()
+        session.refresh(publisher)
+
+        book = BookDB(
+            title="リレーション入門",
+            author="テスト太郎",
+            isbn="9780000000033",
+            publisher=publisher,
+        )
+        session.add(book)
+        session.commit()
+        session.refresh(book)
+
+        assert book.publisher_id == publisher.publisher_id
+        assert book.publisher.name == "技術出版"
+        assert publisher.books[0].title == "リレーション入門"
+
+        results = (
+            session.query(BookDB, PublisherDB)
+            .join(
+                PublisherDB,
+                BookDB.publisher_id == PublisherDB.publisher_id,
+            )
+            .all()
+        )
+
+        joined_book, joined_publisher = results[0]
+
+        assert joined_book.title == "リレーション入門"
+        assert joined_publisher.name == "技術出版"
+
+
+def test_book_publisher_foreign_key_constraint():
+    with TestingSessionLocal() as session:
+        book = BookDB(
+            title="外部キー違反の本",
+            author="テスト太郎",
+            isbn="9780000000040",
+            publisher_id=999,
+        )
+        session.add(book)
+        with pytest.raises(IntegrityError):
+            session.commit()
+        session.rollback()
+
+
+def test_left_outer_join_includes_book_without_publisher():
+    with TestingSessionLocal() as session:
+        book = BookDB(
+            title="出版社なしの本",
+            author="テスト太朗",
+            isbn="9780000000057",
+        )
+        session.add(book)
+        session.commit()
+        session.refresh(book)
+
+        results = (
+            session.query(BookDB, PublisherDB)
+            .outerjoin(
+                PublisherDB,
+                BookDB.publisher_id == PublisherDB.publisher_id,
+            )
+            .all()
+        )
+
+        joined_book, joined_publisher = results[0]
+
+        assert joined_book.title == "出版社なしの本"
+        assert joined_publisher is None
+
+
+def test_get_book_returns_publisher_name():
+    with TestingSessionLocal() as session:
+        publisher = PublisherDB(name="技術出版")
+        session.add(publisher)
+        session.commit()
+        session.refresh(publisher)
+
+        book = BookDB(
+            title="テストA",
+            author="テスト太郎",
+            isbn="1234567890987",
+            publisher=publisher,
+        )
+        session.add(book)
+        session.commit()
+        session.refresh(book)
+
+        book_id = book.book_id
+
+        response = client.get(f"/books/{book_id}")
+
+        assert response.status_code == 200
+        assert response.json()["publisher_name"] == "技術出版"
+
+
+def test_list_books_loads_publishers_in_one_select():
+    select_statements = []
+
+    def record_select(
+        _connection,
+        _cursor,
+        statement,
+        _parameters,
+        _context,
+        _executemany,
+    ):
+        if statement.lstrip().upper().startswith("SELECT"):
+            select_statements.append(statement)
+
+    with TestingSessionLocal() as session:
+        publisher_a = PublisherDB(name="出版社A")
+        publisher_b = PublisherDB(name="出版社B")
+
+        session.add(publisher_a)
+        session.add(publisher_b)
+        session.commit()
+        session.refresh(publisher_a)
+        session.refresh(publisher_b)
+
+        book_a = BookDB(
+            title="書籍A", author="著者A", isbn="9780000000071", publisher=publisher_a
+        )
+
+        book_b = BookDB(
+            title="書籍B", author="著者B", isbn="9780000000088", publisher=publisher_b
+        )
+
+        session.add(book_a)
+        session.add(book_b)
+        session.commit()
+
+    event.listen(
+        test_engine,
+        "before_cursor_execute",
+        record_select,
+    )
+
+    try:
+        response = client.get("/books")
+    finally:
+        event.remove(
+            test_engine,
+            "before_cursor_execute",
+            record_select,
+        )
+    assert response.status_code == 200
+
+    response_body = response.json()
+
+    assert len(response_body) == 2
+    assert response_body[0]["publisher_name"] == "出版社A"
+    assert response_body[1]["publisher_name"] == "出版社B"
+    assert len(select_statements) == 1

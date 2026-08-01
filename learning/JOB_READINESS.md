@@ -16,15 +16,15 @@
 | Python基本文法 | 基礎理解 | 基本文法、関数、クラス、例外処理を学習済み。実務形式での自力活用は今後確認 |
 | Git・GitHub基礎 | 基礎理解 | ローカル初期化、`.gitignore`、初回commit、GitHub接続、初回pushを実施済み。小さなコミットとチーム形式の運用は今後確認 |
 | FastAPI基本API | ヒントありで実装可能 | GET、POST、各種パラメータ、Pydantic入力のコード経験あり。自力での類似課題を今後確認 |
-| SQLAlchemy・SQLite基礎 | ヒントありで実装可能 | Session、CRUD、トランザクション、NOT NULL・UNIQUE制約、DB例外処理、ページネーションを実装・説明。外部キー・JOIN・インデックスは今後確認 |
+| SQLAlchemy・SQLite基礎 | ヒントありで実装可能 | Session、CRUD、トランザクション、NOT NULL・UNIQUE制約、外部キー、JOIN、インデックス、N+1対策を実装・説明。別要件からの自力設計は今後確認 |
 | ID取得・404 | ヒントありで実装可能 | `.first()` と `HTTPException` の実装あり。類似課題で定着確認が必要 |
 | `response_model` | ヒントありで実装可能 | `BookResponse` を設計し、POST・GET・PATCHへ設定。Swagger UIで正常系・異常系を確認済み |
 | APIレスポンス設計 | ヒントありで実装可能 | 1件・複数件を区別し、DBモデルとレスポンスモデルを分離。`from_attributes` を実装済み |
 | CRUD全体 | ヒントありで実装可能 | 更新・削除を実装し、検索からトランザクション、レスポンスまで説明。別要件からCRUD全体を自力設計する確認は未実施 |
 | ファイル分割・設計 | ヒントありで実装可能 | DB接続、DBモデル、Pydanticスキーマ、Router、アプリ本体へ分割し、責務を説明 |
-| APIテスト・pytest | ヒントありで実装可能 | `TestClient`、テスト用DB、fixture、Dependency Override、モック、`caplog`、パラメータ化を使い46ケースが成功 |
+| APIテスト・pytest | ヒントありで実装可能 | `TestClient`、テスト用DB、fixture、Dependency Override、モック、`caplog`、SQL回数監視を使い52ケースが成功 |
 | 環境構築・設定管理 | 基礎理解 | `venv`、`requirements.txt`、READMEの構築手順、`DATABASE_URL` の環境変数化を実施。OS・プロセス・環境変数の関係は要復習 |
-| PostgreSQL | 未学習 | 現在はSQLiteを使用 |
+| PostgreSQL | 基礎理解 | Homebrew PostgreSQLへ接続し、Alembic、CRUD、永続化、`psql`による直接確認を実施。SQLiteとの差とPostgreSQL統合テストは今後確認 |
 | Alembic | ヒントありで実装可能 | ベースライン、`stamp`、SQLiteバッチ変更、段階的なISBN追加、upgrade・downgrade、空DB再現を実施。別要件からの自力設計は今後確認 |
 | 認証・認可 | 未学習 | 実装・学習記録なし |
 | セキュリティ | 未学習 | 実務形式での確認なし |
@@ -35,9 +35,9 @@
 
 ## 現在の総合判定
 
-FastAPIとSQLiteのCRUD APIについて、責務分割、入力バリデーション、トランザクション、ログ、DB例外処理、ページネーション、NOT NULL・UNIQUE制約、段階的なAlembicマイグレーション、正常系・異常系テストまで進んだ段階。就職応募用の完成ポートフォリオや、ジュニアとして実務参加できる段階にはまだ到達していない。
+FastAPIとSQLAlchemyのCRUD APIについて、SQLiteによる自動テストに加え、PostgreSQL接続、外部キー・JOIN、インデックス、N+1対策、Alembic、正常系・異常系テストまで進んだ段階。就職応募用の完成ポートフォリオや、ジュニアとして実務参加できる段階にはまだ到達していない。
 
-直近ではDBインデックスを学習する。その後、外部キー・JOIN、PostgreSQL、認証、Dockerを段階的に実務形式へつなげる。
+直近ではSQLiteとPostgreSQLの違い、PostgreSQL統合テスト、トランザクションと同時更新を学習する。その後、認証とDockerを段階的に実務形式へつなげる。
 
 ## 最終評価の考え方
 

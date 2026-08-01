@@ -1,6 +1,6 @@
 # FastAPIStudy
 
-Pythonバックエンドエンジニアとしての就職と、ジュニアエンジニアとして実務へ参加できる状態を目指す学習リポジトリです。現在はPython、FastAPI、SQLAlchemy、SQLiteを使った書籍管理APIで学習しています。
+Pythonバックエンドエンジニアとしての就職と、ジュニアエンジニアとして実務へ参加できる状態を目指す学習リポジトリです。現在はPython、FastAPI、SQLAlchemy、PostgreSQLを使った書籍管理APIで学習しています。pytestでは高速で独立したテストのためインメモリSQLiteを使用しています。
 
 ## 現在地
 
@@ -67,6 +67,16 @@ DBの接続先は、`DATABASE_URL`環境変数で変更できます。
 DATABASE_URL="sqlite:///other.db" ./venv/bin/python -m uvicorn main:app --reload
 ```
 
+ローカルのPostgreSQLを使用する例：
+
+```bash
+export DATABASE_URL="postgresql+psycopg://DBユーザー名@localhost:5432/fastapi_study"
+./venv/bin/alembic upgrade head
+./venv/bin/python -m uvicorn main:app --reload
+```
+
+`DBユーザー名`は各自のPostgreSQLユーザーへ置き換えてください。パスワードなどの機密情報をGitへ追加しないでください。
+
 認証情報や秘密鍵などの機密情報は、コードやREADMEへ直接記載しないでください。
 
 ## DBマイグレーション
@@ -116,7 +126,7 @@ pytestでAPIテストを実行します。
 ./venv/bin/python -m pytest -v
 ```
 
-テストでは開発用の`book.db`ではなく、テスト用のインメモリSQLiteを使用します。
+テストでは開発用PostgreSQLや`book.db`ではなく、テスト用のインメモリSQLiteを使用します。SQLiteとPostgreSQLの差を確認する統合テストは今後追加予定です。
 
 ## API一覧
 
@@ -148,13 +158,13 @@ GET /books?offset=0&limit=20
 
 ## 現在のアプリ
 
-FastAPI、SQLAlchemy、SQLiteを使用した書籍管理APIです。書籍の登録、取得、部分更新、削除に対応して
+FastAPI、SQLAlchemy、PostgreSQLを使用した書籍管理APIです。書籍の登録、取得、部分更新、削除に対応して
 います。
 
 | ファイル              | 役割                                                      |
 | --------------------- | --------------------------------------------------------- |
 | `main.py`             | FastAPIアプリの作成、書籍用Routerの登録                    |
-| `database.py`         | SQLiteへの接続設定とSession管理                           |
+| `database.py`         | 環境変数によるSQLite・PostgreSQL接続設定とSession管理      |
 | `models.py`           | SQLAlchemyによるDBモデルの定義                            |
 | `schemas.py`          | Pydanticによるリクエスト・レスポンススキーマの定義        |
 | `routers/books.py`    | 書籍APIのエンドポイント                                   |

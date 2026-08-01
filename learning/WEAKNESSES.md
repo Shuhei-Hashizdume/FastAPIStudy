@@ -12,6 +12,9 @@
 - Alembicのベースライン、`stamp`、マイグレーションファイル、DB内の`alembic_version`の関係を説明する
 - HTTPレスポンスオブジェクトと、`status_code`・JSONボディを区別する
 - PATCHのISBN重複確認で更新対象自身を除外する理由を説明する
+- `commit()`内の`flush()`でIDが取得される流れと、`refresh()`でDBの最新値を読み直す役割を区別する
+- 関数定義による関数オブジェクト生成、コールバック登録、SQLAlchemyによる呼び出しを主語付きで説明する
+- SQLAlchemyイベントが渡す値は検索結果ではなく、SQL実行直前の接続・SQL文・パラメータなどであることを説明する
 
 ## 学習中
 
@@ -21,8 +24,8 @@
 
 ## 今後学習
 
-- インデックス、外部キー、JOIN
-- PostgreSQL
+- PostgreSQLを使う統合テスト
+- SQLiteとPostgreSQLの違い
 - 認証・認可
 - Docker、CI、デプロイ
 
@@ -43,6 +46,11 @@
 - PATCHで項目未指定・`null`・不正な空文字列を区別する設計
 - ISBNの入力検証、409、DBのUNIQUE・NOT NULL制約
 - nullableなカラム追加からNOT NULL化へ進める段階的マイグレーション
+- DBインデックスの検索面の利点と、書き込み・容量面のコスト
+- PostgreSQLの接続、`psql`、シーケンス、永続化
+- 外部キー、`relationship()`、`back_populates`、JOIN
+- `@property`とPydanticの`from_attributes=True`による出版社名のレスポンス変換
+- N+1問題と`joinedload()`、イベントリスナーによるSELECT回数の検証
 
 今後の類似課題で、ヒントなしに設計・実装・説明できるか確認する。
 

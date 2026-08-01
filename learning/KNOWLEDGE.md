@@ -99,7 +99,7 @@
 - `monkeypatch`で`Session.commit()`を置き換え、POST・PATCH・DELETEのDBエラーを再現した
 - `caplog`でログメッセージ、例外クラス、元の例外メッセージを検証した
 - `pytest.raises`で実際の`IntegrityError`、`pytest.mark.parametrize`で複数入力を検証した
-- CRUD、絞り込み、ページネーション、入力境界値、422、404、409、500、DB制約を含む46ケースを実行した
+- CRUD、絞り込み、ページネーション、入力境界値、422、404、409、500、DB制約、外部キー、JOIN、N+1対策を含む52ケースを実行した
 - 今後の確認：複雑なfixture設計とテストデータの共通化
 
 ## 仮想環境・依存関係・README
@@ -167,3 +167,38 @@
 - `58bb8935c9ad`でISBNカラムとUNIQUE制約、`de1c8b4db0bb`でNOT NULL制約を追加した
 - upgrade・downgradeの往復、開発DBのhead更新、`alembic check`を確認した
 - 今後の確認：別の既存データ移行でも、安全な段階を自力で設計できるか確認する
+
+## PostgreSQL接続と永続化
+
+- 状態：基礎学習完了・経過観察
+- `source venv/bin/activate`はプロジェクト用Python環境、`DATABASE_URL`はDB接続先を現在のターミナルから子プロセスへ渡す
+- SQLAlchemyのEngineは`psycopg`を介してPostgreSQLサーバーへ接続する
+- `psql -h localhost -d fastapi_study`はローカルのPostgreSQL内にある`fastapi_study`へ直接接続する
+- PostgreSQLはサーバープロセスが専用のデータ領域を管理し、FastAPIを停止しても行データを保持する
+- `alembic current`の`head`は行データではなく、適用済みDB構造の現在地を示す
+- シーケンスは次に発行する主キー番号を管理し、テーブルの行数を表すものではない
+- 今後の確認：SQLiteとの違いと、PostgreSQL統合テストの必要範囲を説明する
+
+## インデックス、外部キー、JOIN
+
+- 状態：基礎学習完了・経過観察
+- インデックスは検索を速くする候補になる一方、INSERT・UPDATE・DELETE時の更新処理と保存容量が必要
+- `ix_books_author`をAlembicで追加し、PostgreSQLの`\\d books`とSQLAlchemyのInspectorによるテストで確認した
+- `ForeignKey`はDB側で存在しない関連先IDの保存を防ぎ、`relationship()`はPython側で関連オブジェクトを操作できるようにする
+- `back_populates`は`book.publisher`と`publisher.books`の双方向の関係を同期する
+- `JOIN`は検索中だけ関連行を組み合わせ、元のテーブルを永久に合体させない
+- 今後の確認：別の要件から外部キーとJOINを自力設計できるか確認する
+
+## 出版社レスポンスとN+1問題
+
+- 状態：基礎学習完了・経過観察
+- `BookDB.publisher_name` propertyは`publisher`があれば名前、なければ`None`を返す
+- `BookResponse.publisher_name: str | None`により、Pydanticが`from_attributes=True`でpropertyを読み取る
+- DBモデルが属性を保持していても、レスポンス用Pydanticモデルにない項目はAPIレスポンスへ含まれない
+- 遅延読み込みで書籍一覧1回と出版社N回のSELECTが発生する状態をN+1問題という
+- `joinedload(BookDB.publisher)`をQueryへ設定し、`.all()`で書籍と出版社を1回のSQLで取得する
+- SQLAlchemyの`before_cursor_execute`イベントへコールバックを登録し、実行予定のSELECT文を記録した
+- 関数定義は関数オブジェクトを作り、`event.listen()`はその関数オブジェクトをSQLAlchemyへ登録する
+- `event.remove()`を`finally`で実行し、テストが追加した監視を後続テストへ残さない
+- 出版社付き書籍2冊のレスポンスとSELECT 1回をテストし、全52ケースの成功を確認した
+- 今後の確認：別のリレーションでもN+1を発見し、適切な読み込み方法を選べるか確認する

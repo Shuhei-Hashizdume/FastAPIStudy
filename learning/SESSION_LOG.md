@@ -281,3 +281,64 @@
 ### 次回開始地点
 
 DBインデックスが必要になる理由から開始する。まず、インデックスがないDBがISBNや著者を探す流れを考え、検索速度の利点と書き込み・容量の欠点を確認する。その後、対象カラムを選び、Alembicで追加・削除して動作確認する。
+
+## 2026-08-01：PostgreSQL、外部キー・JOIN、出版社レスポンス、N+1対策
+
+### 実施内容
+
+- `author`へインデックスを追加し、AlembicマイグレーションとDB構造テストで確認した
+- `psycopg`を導入し、`DATABASE_URL`でHomebrew PostgreSQLの`fastapi_study`へ接続した
+- PostgreSQLへベースラインから最新revisionまで適用し、`f481e0cbd250 (head)`を確認した
+- FastAPIのPOST・GETと再起動後のGETにより、PostgreSQLへの読み書きと永続化を確認した
+- `psql`で`books`、`publishers`、シーケンス、主キー、UNIQUE、インデックス、外部キーを直接確認した
+- `publishers`テーブルと`books.publisher_id`を追加し、`relationship()`と`back_populates`で双方向の関連を実装した
+- 出版社を登録して書籍へ関連付け、SQLの`JOIN`で書籍名と出版社名を取得した
+- `BookDB.publisher_name` propertyと`BookResponse.publisher_name`で出版社名をAPIレスポンスへ追加した
+- `joinedload(BookDB.publisher)`で一覧取得時に出版社を同時取得した
+- SQLAlchemyの`before_cursor_execute`イベントでSELECTを記録し、出版社付き2冊を1回のSELECTで取得するテストを追加した
+- 学習時の説明順序、情報量、理解確認頻度を`AGENTS.md`へ反映した
+
+### 理解確認できた内容
+
+- `DATABASE_URL`はターミナルのプロセス環境へ設定され、ターミナルを閉じると再設定が必要になる
+- `alembic current`の`head`は行データではなくDB構造の変更履歴が最新であることを表す
+- FastAPIを再起動してもデータが残るのは、PostgreSQLがデータを永続化しているため
+- `psql`はPostgreSQLサーバーではなく、サーバーへ直接指示を送るクライアント
+- シーケンスは次に発行する主キー番号を管理する
+- インデックスは検索を速くする一方、書き込み時の更新処理と保存容量が必要になる
+- `ForeignKey`はDB側の参照整合性、`relationship()`はPython側のオブジェクト操作を担当する
+- `JOIN`は検索時に別テーブルの関連行を組み合わせ、テーブルを永久に合体させない
+- `BookDB.publisher`は`PublisherDB`オブジェクトまたは`None`を保持する
+- `@property`で`book.publisher.name`を`book.publisher_name`としてPydanticへ公開できる
+- `response_model`にない属性は、SQLAlchemyオブジェクトが保持していてもレスポンスへ含まれない
+- `Query`オブジェクトは条件と読み込み方法を保持し、`.all()`でSQLを実行する
+- `joinedload()`は関連オブジェクトを事前取得し、レスポンス変換時の追加SELECTを防ぐ
+- 関数定義は関数オブジェクトを作り、SQLAlchemyは登録されたコールバックをSQL実行直前に呼ぶ
+- `before_cursor_execute`がコールバックへ渡す値は検索結果ではなく、実行直前の接続、SQL文、パラメータなど
+- `event.remove()`と`finally`で一時的な監視を必ず解除し、後続テストへの影響を防ぐ
+
+### 動作確認
+
+- PostgreSQL：`f481e0cbd250 (head)`
+- FastAPI：PostgreSQLへのPOSTは201、1件・全件GETは200
+- PostgreSQL：FastAPI再起動後も登録した書籍を取得
+- `psql`：書籍・出版社・外部キー・JOIN結果を確認
+- pytest：52ケースすべて成功
+- N+1対策テスト：出版社付き2冊をSELECT 1回で取得
+
+### 完了判定
+
+- 完了：DBインデックスの目的、利点、書き込み・容量面の欠点、実装、DB・テスト確認
+- 完了：PostgreSQLの導入、接続、マイグレーション、CRUD、永続化の基礎
+- 完了：外部キー、`relationship()`、`back_populates`、JOINの基礎
+- 完了：出版社名をAPIレスポンスへ変換する設計とテスト
+- 完了：N+1問題の説明、`joinedload()`による対策、SELECT回数テスト
+- 経過観察：関数オブジェクト、コールバック、イベントリスナーを別の例でも説明できるか
+- 経過観察：`commit()`内の`flush()`と`refresh()`の役割を混同せず説明できるか
+- 未完了：SQLiteとPostgreSQLの違いを体系的に説明する
+- 未完了：PostgreSQLを使う統合テスト
+- 未完了：トランザクション分離レベルと同時更新
+
+### 次回開始地点
+
+現在のAPIはPostgreSQL、pytestはインメモリSQLiteを使っていることを確認する。ファイル型DBとサーバー型DBの違いから始め、データ型、制約、SQL、同時実行、マイグレーションの差を1項目ずつ扱う。その後、SQLiteのテストだけでは保証できない範囲とPostgreSQL統合テストの役割を考える。

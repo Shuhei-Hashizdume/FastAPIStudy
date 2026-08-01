@@ -35,3 +35,4 @@ class BookResponse(BaseModel):
     title: str
     author: str
     isbn: str
+    publisher_name: str | None

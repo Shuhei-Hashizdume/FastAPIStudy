@@ -2,34 +2,37 @@
 
 ## 現在地
 
-- 現在のフェーズ：CRUD APIを保守できる構成へ改善
+- 現在のフェーズ：PostgreSQLと実務的なDB管理
 - 現在のプロジェクト：書籍管理API
-- 今回の終了地点：入力バリデーション、ISBN、一意制約、段階的なAlembicマイグレーションを実装・確認
-- 現在の学習状態：PydanticとDB制約の二段階で入力・保存データを守り、正常系・異常系を46テストで確認済み
-- 次回講義：DBインデックスの目的、効果、追加方法
+- 今回の終了地点：PostgreSQL接続、インデックス、外部キー・JOIN、出版社レスポンス、N+1対策を実装・確認
+- 現在の学習状態：PostgreSQLでマイグレーション、CRUD、永続化、外部キー・JOINを確認し、`joinedload()`によるN+1対策を52テストで検証済み
+- 次回講義：SQLiteとPostgreSQLの違い
 
 ## 今回完了した項目
 
-- `Field`でtitleを1〜200文字、authorを1〜100文字に制限した
-- `ConfigDict(str_strip_whitespace=True)`で前後の空白を除去し、空白だけの入力を422にした
-- POSTの必須項目不足、`null`、空文字列、長すぎる文字列、境界値をテストした
-- PATCHで項目未指定・`null`・不正な空文字列を区別し、既存値が維持されることをGETでも確認した
-- ISBNを必須の13桁数字としてPydanticで検証し、レスポンスにも追加した
-- ISBNへDBのUNIQUE制約とNOT NULL制約を設定した
-- POST・PATCHでISBN重複を事前確認し、クライアントへ409を返す処理を実装した
-- SQLAlchemyのSessionから直接登録した場合も、DBのUNIQUE・NOT NULL制約が`IntegrityError`を発生させることを確認した
-- 既存データを守るため、ISBN追加を「nullableなカラムとUNIQUE制約の追加」「既存データ更新」「NOT NULL化」の順で移行した
-- ISBN追加とNOT NULL化の2つのAlembicマイグレーションでupgrade・downgradeを確認した
-- 開発DBを`de1c8b4db0bb (head)`へ更新し、`alembic check`で未反映差分がないことを確認した
-- pytest 46ケースすべての成功を確認した
+- `author`へインデックスを追加し、検索速度の利点と書き込み・容量面のコストを確認した
+- Alembicで`ix_books_author`を追加し、DB構造とテストから存在を確認した
+- `psycopg`を導入し、`DATABASE_URL`を使ってPostgreSQLへ接続した
+- PostgreSQLへ全マイグレーションを適用し、`f481e0cbd250 (head)`を確認した
+- FastAPIからPOST・GETを実行し、PostgreSQLへの書き込み、読み取り、再起動後の永続化を確認した
+- `psql`でテーブル、行データ、シーケンス、制約、インデックスを直接確認した
+- `publishers`テーブルと`books.publisher_id`の外部キーを追加した
+- SQLAlchemyの`relationship()`と`back_populates`で書籍と出版社を双方向に関連付けた
+- SQLの`JOIN`で書籍名と出版社名を結合して取得した
+- `BookDB.publisher_name` propertyと`BookResponse.publisher_name`で出版社名をAPIレスポンスへ追加した
+- `joinedload(BookDB.publisher)`で一覧取得時のN+1問題を防いだ
+- SQLAlchemyのイベントリスナーでSELECT回数を記録し、出版社付き2冊を1回のSELECTで取得するテストを追加した
+- pytest 52ケースすべての成功を確認した
 
 ## 学習中・未完了
 
 - CRUD全体を別の要件から一貫して自力実装する
-- インデックス、外部キー、JOINを実装する
+- SQLiteとPostgreSQLの違いを体系的に説明する
+- PostgreSQLを使う統合テストを設計する
 - ISBNのチェックディジットを含む厳密な妥当性検証
 - 同時リクエストによるISBN競合時も409へ変換する設計
-- PostgreSQL、認証、Docker
+- 同時更新とトランザクション分離レベル
+- 認証、Docker
 
 ## 現在の強み
 
@@ -43,6 +46,9 @@
 - 422と409を入力形式の不正・現在のDB状態との競合として使い分けられる
 - ベースライン、revision、`stamp`、`upgrade`、`downgrade`の基本的な流れを説明・実行できる
 - コード変更後に対象テストと全件テストを実行する習慣がある
+- PostgreSQLへの接続経路をFastAPI、SQLAlchemy、Engine、`psycopg`、PostgreSQLに分けて説明できる
+- 外部キーと`relationship()`のDB側・Python側の役割を区別できる
+- N+1問題が発生する流れと`joinedload()`による事前読み込みを説明できる
 
 ## 現在の要復習
 
@@ -54,22 +60,23 @@
 - `nullable=True`とNOT NULL無効、`nullable=False`とNOT NULL有効の対応
 - HTTPレスポンスオブジェクトと、その`status_code`・JSONボディの区別
 - PATCHのISBN重複確認で、更新対象自身を`book_id`により除外する理由
+- `commit()`内の`flush()`、DBのID生成、`refresh()`の役割の違い
+- 関数定義、関数オブジェクト、コールバック、イベントリスナーの関係
+- SQLAlchemyイベントの引数が検索結果ではなく実行直前の情報であること
 
 ## 次回の完了条件
 
-- インデックスが解決する検索速度の問題を説明できる
-- インデックスを付ける利点と、追加・更新・容量面の欠点を説明できる
-- 検索条件を確認して、インデックス候補のカラムを考えられる
-- Alembicでインデックスを追加・削除するマイグレーションを実装できる
-- インデックスの存在をDBとテストで確認できる
-- 既存の46テストを含む全件テストが成功する
+- SQLiteのファイル型DBとPostgreSQLのサーバー型DBの違いを説明できる
+- データ型、制約、SQL、同時実行、マイグレーションの差があることを具体例で説明できる
+- SQLiteによる単体テストだけではPostgreSQL固有の動作を保証できない理由を説明できる
+- PostgreSQLを使う統合テストが必要になる範囲を考えられる
 
 ## 次回開始時の講師への指示
 
 次の3点を報告してから、目的と必要な理由を先に説明し、新しい用語を1つずつ扱う。
 
-- 前回の終了地点：入力バリデーション、ISBN、一意制約、段階的なAlembicマイグレーションを実装・確認
-- 今回の講義：DBインデックスの目的、効果、追加方法
+- 前回の終了地点：PostgreSQL接続、インデックス、外部キー・JOIN、出版社レスポンス、N+1対策を実装・確認
+- 今回の講義：SQLiteとPostgreSQLの違い
 - 現在のプロジェクト：書籍管理API
 
-最初の質問は「ISBNで書籍を探す件数が増えた場合、DBはインデックスなしでどのように目的の行を探すと思いますか？」とする。
+最初に、現在のAPIはPostgreSQL、pytestはインメモリSQLiteを使っている全体像を確認する。その後、「SQLiteの52テストが成功すれば、PostgreSQLでもすべて同じ動作になると言い切れるか」を考えてもらう。

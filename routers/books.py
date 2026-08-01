@@ -2,7 +2,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Query
 from schemas import BookRequest, BookResponse, BookUpdate
 from database import get_db
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from models import BookDB
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
@@ -49,7 +49,7 @@ def show_books(
     ),
     db: Session = Depends(get_db),
 ):
-    query = db.query(BookDB)
+    query = db.query(BookDB).options(joinedload(BookDB.publisher))
 
     if author is not None:
         query = query.filter(BookDB.author == author)
