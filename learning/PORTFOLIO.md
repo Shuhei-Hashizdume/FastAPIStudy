@@ -21,6 +21,7 @@ FastAPI、Pydantic、SQLAlchemy、SQLite、PostgreSQLを使い、Web APIとデ�
 - AlembicによるDB構造の履歴管理
 - PostgreSQL接続、外部キー、JOIN、インデックス
 - 出版社名を含む書籍レスポンスと`joinedload()`によるN+1対策
+- テスト専用PostgreSQLと、commit時のISBN競合を409へ変換する処理
 
 更新・削除を含め、コードが存在するだけでは学習完了や成果物完成とは判定しない。
 
@@ -33,7 +34,7 @@ FastAPI、Pydantic、SQLAlchemy、SQLite、PostgreSQLを使い、Web APIとデ�
 - DELETEは204・本文なしとし、404を含めて動作確認済み
 - DB接続、DBモデル、Pydanticスキーマ、Router、FastAPIアプリ本体をファイル分割済み
 - `APIRouter` で書籍APIをFastAPIアプリへ登録済み
-- テスト用インメモリDBと `TestClient` を使い、CRUD、絞り込み、ページネーション、入力境界値、DB例外、制約、外部キー、JOIN、N+1対策を含む52ケースが成功
+- テスト専用PostgreSQLと `TestClient` を使い、CRUD、絞り込み、ページネーション、入力境界値、DB例外、制約、外部キー、JOIN、N+1対策、ISBN競合を含む53ケースが成功
 - `DATABASE_URL` を環境変数から読む構成とし、未設定時のSQLite初期値を用意済み
 - `logger.exception()`で開発者向けの詳細を残し、クライアントには内部情報を隠した500レスポンスを返す
 - `IntegrityError`と`SQLAlchemyError`を分け、モックと`caplog`で異常系を確認済み
@@ -45,13 +46,15 @@ FastAPI、Pydantic、SQLAlchemy、SQLite、PostgreSQLを使い、Web APIとデ�
 - PostgreSQLへ全マイグレーションを適用し、FastAPIと`psql`の両方から読み書きと永続化を確認済み
 - `publishers`とのリレーション、外部キー、JOIN、出版社名レスポンスを実装済み
 - `joinedload()`とSQLAlchemyイベントによるSELECT回数テストでN+1対策を確認済み
+- テスト接続先を`fastapi_study_test`へ限定し、Alembicの構造を残したまま`TRUNCATE`で行だけを初期化する安全策を実装済み
+- commit時に`uq_books_isbn`違反が起きた場合も、`UniqueViolation`を判定して409へ変換する処理とテストを実装済み
 - `requirements.txt` とREADMEにより、環境構築、DBマイグレーション、起動、テスト、API仕様を他の人が確認できる
 - GitHubリポジトリ `Shuhei-Hashizdume/FastAPIStudy` へ接続し、開発履歴の記録を開始済み
 
 ### 次の改善
 
-1. SQLiteとPostgreSQLの違いを説明し、PostgreSQL統合テストを追加する
-2. トランザクションと同時更新を確認する
+1. 本当の並列実行とトランザクション分離レベルを確認する
+2. 同時更新時の競合と対策を確認する
 3. CRUD全体を別の要件から自力実装できるか確認する
 4. READMEに設計理由とトレードオフを追加する
 

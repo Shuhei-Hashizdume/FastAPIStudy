@@ -99,7 +99,7 @@
 - `monkeypatch`で`Session.commit()`を置き換え、POST・PATCH・DELETEのDBエラーを再現した
 - `caplog`でログメッセージ、例外クラス、元の例外メッセージを検証した
 - `pytest.raises`で実際の`IntegrityError`、`pytest.mark.parametrize`で複数入力を検証した
-- CRUD、絞り込み、ページネーション、入力境界値、422、404、409、500、DB制約、外部キー、JOIN、N+1対策を含む52ケースを実行した
+- CRUD、絞り込み、ページネーション、入力境界値、422、404、409、500、DB制約、外部キー、JOIN、N+1対策、commit時のISBN競合を含む53ケースをPostgreSQLで実行した
 - 今後の確認：複雑なfixture設計とテストデータの共通化
 
 ## 仮想環境・依存関係・README
@@ -177,7 +177,36 @@
 - PostgreSQLはサーバープロセスが専用のデータ領域を管理し、FastAPIを停止しても行データを保持する
 - `alembic current`の`head`は行データではなく、適用済みDB構造の現在地を示す
 - シーケンスは次に発行する主キー番号を管理し、テーブルの行数を表すものではない
-- 今後の確認：SQLiteとの違いと、PostgreSQL統合テストの必要範囲を説明する
+- 理解確認済み：SQLiteとPostgreSQLは、ファイル型・サーバー型、外部キー、同時書き込み、マイグレーション、型の扱いが異なる
+- 理解確認済み：SQLiteで成功したテストがPostgreSQLでも必ず成功するとは限らない
+- 今後の確認：テスト専用PostgreSQLを安全に構築し、DB依存テストを移行する
+
+## テスト用DBの運用方針
+
+- 状態：基礎学習完了・経過観察
+- DBへ依存しないPydanticモデルやPython関数はDBなしの単体テストで確認する
+- FastAPI、SQLAlchemy、DB制約、JOIN、マイグレーション、トランザクション、N+1対策はテスト専用PostgreSQLを使う統合テストで確認する
+- 開発用`fastapi_study`とテスト用`fastapi_study_test`を分離する
+- インメモリSQLiteの成功だけでPostgreSQL上の動作を保証したと判定しない
+- 学習上の新しい専門用語には、初回説明時に読み仮名を付ける
+- `TEST_DATABASE_URL`からDB名を取り出し、`fastapi_study_test`以外ならテスト収集時に停止する安全確認を実装した
+- AlembicでテストDBを`head`まで構築し、pytestのDB依存テストをPostgreSQLへ移行した
+- `Base.metadata.drop_all()`・`create_all()`をやめ、`TRUNCATE TABLE books, publishers RESTART IDENTITY`で行とシーケンスだけを初期化する
+- テーブル構造、制約、インデックス、`alembic_version`は各テストの前後にも維持する
+- PostgreSQLで53ケースすべての成功を確認した
+
+## 同時ISBN登録とDB制約エラーの変換
+
+- 状態：基礎学習完了・経過観察
+- API側の重複検索は通常の重複をcommit前に発見し、分かりやすい409を返すための早期確認
+- ほぼ同時の2リクエストは、両方が事前検索を通過する可能性がある
+- PostgreSQLのUNIQUE制約は、同時登録を含めて重複保存を防ぐ最後の防御
+- PostgreSQLのUNIQUE制約違反をpsycopgが`UniqueViolation`として受け取り、SQLAlchemyが`IntegrityError`で包む
+- `error.orig`から元のpsycopg例外を確認し、`error.orig.diag.constraint_name`から違反した制約名を確認できる
+- `UniqueViolation`かつ制約名が`uq_books_isbn`の場合だけ409へ変換し、その他の`IntegrityError`は500のままにした
+- `Query.first()`を`None`を返す関数へ一時的に置き換え、事前検索を通過してcommit時に競合する状況を再現した
+- 今回のテストは本当の並列実行ではなく、同時実行によって生じる結果を決まった順番で再現するテスト
+- 今後の確認：本当の並列実行とトランザクション分離レベルをPostgreSQLで確認する
 
 ## インデックス、外部キー、JOIN
 
@@ -200,5 +229,5 @@
 - SQLAlchemyの`before_cursor_execute`イベントへコールバックを登録し、実行予定のSELECT文を記録した
 - 関数定義は関数オブジェクトを作り、`event.listen()`はその関数オブジェクトをSQLAlchemyへ登録する
 - `event.remove()`を`finally`で実行し、テストが追加した監視を後続テストへ残さない
-- 出版社付き書籍2冊のレスポンスとSELECT 1回をテストし、全52ケースの成功を確認した
+- 出版社付き書籍2冊のレスポンスとSELECT 1回をテストし、全53ケースの成功を確認した
 - 今後の確認：別のリレーションでもN+1を発見し、適切な読み込み方法を選べるか確認する

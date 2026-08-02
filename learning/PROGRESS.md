@@ -4,9 +4,9 @@
 
 - 現在のフェーズ：PostgreSQLと実務的なDB管理
 - 現在のプロジェクト：書籍管理API
-- 今回の終了地点：PostgreSQL接続、インデックス、外部キー・JOIN、出版社レスポンス、N+1対策を実装・確認
-- 現在の学習状態：PostgreSQLでマイグレーション、CRUD、永続化、外部キー・JOINを確認し、`joinedload()`によるN+1対策を52テストで検証済み
-- 次回講義：SQLiteとPostgreSQLの違い
+- 今回の終了地点：テスト専用PostgreSQLへの統合テスト移行と、同時ISBN登録時の409変換を実装・確認
+- 現在の学習状態：Alembicで作ったテストDB構造を維持し、行だけを初期化する53件のPostgreSQLテストが成功。commit時のISBN UNIQUE制約違反も409へ変換済み
+- 次回講義：本当の同時実行とトランザクション分離レベルの基礎
 
 ## 今回完了した項目
 
@@ -22,15 +22,19 @@
 - `BookDB.publisher_name` propertyと`BookResponse.publisher_name`で出版社名をAPIレスポンスへ追加した
 - `joinedload(BookDB.publisher)`で一覧取得時のN+1問題を防いだ
 - SQLAlchemyのイベントリスナーでSELECT回数を記録し、出版社付き2冊を1回のSELECTで取得するテストを追加した
-- pytest 52ケースすべての成功を確認した
+- 開発用`fastapi_study`とテスト用`fastapi_study_test`を分離した
+- `TEST_DATABASE_URL`のDB名を検査し、開発用DBへのテスト接続を拒否する安全確認を追加した
+- Alembicでテスト用DBの構造を再現し、pytestのDB依存テストをPostgreSQLへ移行した
+- `TRUNCATE TABLE books, publishers RESTART IDENTITY`でDB構造を残し、行だけを各テスト前後に初期化した
+- `UniqueViolation`と制約名`uq_books_isbn`を確認し、commit時のISBN競合を409へ変換した
+- API側の事前検索を通過した状況を`monkeypatch`で再現する競合テストを追加した
+- pytest 53ケースすべての成功を確認した
 
 ## 学習中・未完了
 
 - CRUD全体を別の要件から一貫して自力実装する
-- SQLiteとPostgreSQLの違いを体系的に説明する
-- PostgreSQLを使う統合テストを設計する
 - ISBNのチェックディジットを含む厳密な妥当性検証
-- 同時リクエストによるISBN競合時も409へ変換する設計
+- 本当に複数処理を並列実行するテスト
 - 同時更新とトランザクション分離レベル
 - 認証、Docker
 
@@ -49,13 +53,15 @@
 - PostgreSQLへの接続経路をFastAPI、SQLAlchemy、Engine、`psycopg`、PostgreSQLに分けて説明できる
 - 外部キーと`relationship()`のDB側・Python側の役割を区別できる
 - N+1問題が発生する流れと`joinedload()`による事前読み込みを説明できる
+- SQLiteとPostgreSQLの違いを、ファイル型・サーバー型、外部キー、同時書き込み、マイグレーション、型の具体例で説明できる
+- AlembicはDB構造、pytest fixtureは行データの初期化を担当すると説明できる
+- API側の重複検索は早期確認、PostgreSQLのUNIQUE制約は同時登録も防ぐ最後の防御と説明できる
 
 ## 現在の要復習
 
 - HTTPレスポンスオブジェクト、レスポンスボディ、Pydanticモデルの違い
 - スレッド、SQLiteの`check_same_thread=False`、`StaticPool`の関係
 - OS、プロセス、環境変数の関係
-- `fixture`、Dependency Override、テスト用DBの役割分担
 - Alembicのベースライン、`stamp`、DB内の`alembic_version`の関係
 - `nullable=True`とNOT NULL無効、`nullable=False`とNOT NULL有効の対応
 - HTTPレスポンスオブジェクトと、その`status_code`・JSONボディの区別
@@ -63,20 +69,22 @@
 - `commit()`内の`flush()`、DBのID生成、`refresh()`の役割の違い
 - 関数定義、関数オブジェクト、コールバック、イベントリスナーの関係
 - SQLAlchemyイベントの引数が検索結果ではなく実行直前の情報であること
+- `IntegrityError`、`error.orig`、psycopgの`UniqueViolation`の関係
+- 競合の再現テストと、本当に並列実行するテストの違い
 
 ## 次回の完了条件
 
-- SQLiteのファイル型DBとPostgreSQLのサーバー型DBの違いを説明できる
-- データ型、制約、SQL、同時実行、マイグレーションの差があることを具体例で説明できる
-- SQLiteによる単体テストだけではPostgreSQL固有の動作を保証できない理由を説明できる
-- PostgreSQLを使う統合テストが必要になる範囲を考えられる
+- トランザクション分離レベルが、同時処理から見えるデータを制御する設定だと説明できる
+- 今回の競合再現と、本当の並列実行テストの違いを説明できる
+- PostgreSQL上で同時処理を確認する小さなテストを実装する
+- 対象テストと全件テストを成功させる
 
 ## 次回開始時の講師への指示
 
 次の3点を報告してから、目的と必要な理由を先に説明し、新しい用語を1つずつ扱う。
 
-- 前回の終了地点：PostgreSQL接続、インデックス、外部キー・JOIN、出版社レスポンス、N+1対策を実装・確認
-- 今回の講義：SQLiteとPostgreSQLの違い
+- 前回の終了地点：テスト専用PostgreSQLへの移行と、commit時のISBN競合を409へ変換する処理を実装・確認
+- 今回の講義：本当の同時実行とトランザクション分離レベルの基礎
 - 現在のプロジェクト：書籍管理API
 
-最初に、現在のAPIはPostgreSQL、pytestはインメモリSQLiteを使っている全体像を確認する。その後、「SQLiteの52テストが成功すれば、PostgreSQLでもすべて同じ動作になると言い切れるか」を考えてもらう。
+最初に、今回の`monkeypatch`テストが本当に2つの処理を同時実行してはいない理由を確認する。その後、トランザクション分離レベルと同時処理から見えるデータの関係を1項目ずつ扱う。

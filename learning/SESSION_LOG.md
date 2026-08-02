@@ -342,3 +342,47 @@ DBインデックスが必要になる理由から開始する。まず、イン
 ### 次回開始地点
 
 現在のAPIはPostgreSQL、pytestはインメモリSQLiteを使っていることを確認する。ファイル型DBとサーバー型DBの違いから始め、データ型、制約、SQL、同時実行、マイグレーションの差を1項目ずつ扱う。その後、SQLiteのテストだけでは保証できない範囲とPostgreSQL統合テストの役割を考える。
+
+## 2026-08-02：テスト専用PostgreSQLと同時ISBN競合
+
+### 実施内容
+
+- 開発用`fastapi_study`とテスト用`fastapi_study_test`を分離した
+- `TEST_DATABASE_URL`から接続先DB名を検査し、テスト用DB以外への接続を拒否する安全確認を追加した
+- Alembicでテスト用PostgreSQLへ全マイグレーションを適用した
+- pytestのDB接続をインメモリSQLiteからテスト専用PostgreSQLへ変更した
+- `drop_all()`・`create_all()`をやめ、`TRUNCATE`と`RESTART IDENTITY`で各テスト前後の行と連番だけを初期化した
+- 入力バリデーションを復習し、空文字列、空白、`None`、未指定、Pydantic、NOT NULLの違いを確認した
+- commit時に発生したISBNの`UniqueViolation`を、制約名`uq_books_isbn`まで確認して409へ変換した
+- `Query.first()`を一時的に置き換え、API側の事前検索を通過してPostgreSQLのUNIQUE制約で失敗する状況を再現した
+
+### 理解確認できた内容
+
+- AlembicはDB構造と変更履歴、pytest fixtureは各テスト前後の行データ初期化を担当する
+- `TRUNCATE`で外部キーの参照先だけを削除すると拒否される理由と、今回は`books`と`publishers`を両方明示していることを説明できた
+- `title: str`だけでは空文字列を拒否できず、`Field(min_length=1)`が必要だと説明できた
+- API側の事前検索は通常の重複を早期発見し、PostgreSQLのUNIQUE制約は同時登録を含めてデータを最後に守る
+- `db.commit()`は呼ばれるが、制約違反によって完了せず`IntegrityError`になる
+- ほぼ同時のリクエストは、両方が事前検索を通過する可能性がある
+- 今回のテストは本当の同時実行ではなく、競合の結果を決まった順番で再現している
+
+### 動作確認
+
+- テスト専用PostgreSQLの接続先安全確認：開発用DBを指定するとcollection時に停止
+- PostgreSQLへの対象テスト：成功
+- ISBN以外の`IntegrityError`が500のままである対象テスト：成功
+- pytest：53ケースすべて成功
+
+### 完了判定
+
+- 完了：開発用DBとテスト用DBの分離
+- 完了：Alembicで構築したテストDB構造を残し、行だけを初期化するfixture
+- 完了：DB依存テストのテスト専用PostgreSQLへの移行
+- 完了：API側の事前検索を通過したISBN競合を、commit時の制約情報から409へ変換する処理とテスト
+- 経過観察：`IntegrityError`、`error.orig`、`UniqueViolation`の関係を別の制約違反でも説明できるか
+- 未完了：本当に複数処理を並列実行するテスト
+- 未完了：トランザクション分離レベルと同時更新
+
+### 次回開始地点
+
+今回の`monkeypatch`テストが本当の同時実行ではない理由を復習する。その後、トランザクション分離レベルが同時処理から見えるデータへどう影響するかを、小さなPostgreSQLテストで確認する。

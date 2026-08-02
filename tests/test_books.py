@@ -1,29 +1,27 @@
+import os
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, inspect, event
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy import create_engine, inspect, event, text
+from sqlalchemy.orm import Session, sessionmaker, Query
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.engine import make_url
 from models import BookDB, PublisherDB
-from database import Base, get_db
+from database import get_db
 from main import app
 
 TEST_ISBN_1 = "9780000000002"
 TEST_ISBN_2 = "9780000000019"
 TEST_ISBN_3 = "9780000000026"
 
-test_engine = create_engine(
-    "sqlite://",
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
+TEST_DATABASE_URL = os.environ[
+    "TEST_DATABASE_URL"
+]  # "TEST_DATABASE_URL"中の値が無ければ、エラーになる。
 
+test_database_name = make_url(TEST_DATABASE_URL).database
+if test_database_name != "fastapi_study_test":
+    raise RuntimeError("テスト用DB fastapi_study_test 以外への接続を拒否しました。")
 
-@event.listens_for(test_engine, "connect")
-def enable_test_sqlite_foreign_keys(dbapi_connection, _connection_record):
-    cursor = dbapi_connection.cursor()
-    cursor.execute("PRAGMA foreign_keys=ON")
-    cursor.close()
+test_engine = create_engine(TEST_DATABASE_URL)
 
 
 TestingSessionLocal = sessionmaker(bind=test_engine)
@@ -41,12 +39,16 @@ app.dependency_overrides[get_db] = override_get_db
 client = TestClient(app)
 
 
+def clear_test_data():
+    with test_engine.begin() as connection:  # Connectionオブジェクトを変数へ
+        connection.execute(text("TRUNCATE TABLE books, publishers RESTART IDENTITY"))
+
+
 @pytest.fixture(autouse=True)
 def reset_database():
-    Base.metadata.drop_all(bind=test_engine)
-    Base.metadata.create_all(bind=test_engine)
+    clear_test_data()
     yield
-    Base.metadata.drop_all(bind=test_engine)
+    clear_test_data()
 
 
 # 登録
@@ -1042,3 +1044,35 @@ def test_list_books_loads_publishers_in_one_select():
     assert response_body[0]["publisher_name"] == "出版社A"
     assert response_body[1]["publisher_name"] == "出版社B"
     assert len(select_statements) == 1
+
+
+def test_create_book_returns_409_when_unique_constraint_fails(monkeypatch):
+    with TestingSessionLocal() as session:
+        existing_book = BookDB(
+            title="既存の本",
+            author="既存の著者",
+            isbn=TEST_ISBN_1,
+        )
+        session.add(existing_book)
+        session.commit()
+
+    def return_none(_query):
+        return None
+
+    monkeypatch.setattr(
+        Query,
+        "first",
+        return_none,
+    )
+
+    response = client.post(
+        "/books",
+        json={
+            "title": "重複する本",
+            "author": "別の著者",
+            "isbn": TEST_ISBN_1,
+        },
+    )
+
+    assert response.status_code == 409
+    assert response.json() == {"detail": "同じISBNの書籍がすでに登録されています。"}

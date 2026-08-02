@@ -7,7 +7,6 @@
 - HTTPレスポンスオブジェクト、レスポンスボディ、Pydanticモデルの違いを主語付きで説明する
 - スレッド、SQLiteの`check_same_thread=False`、`StaticPool`がテストで必要な理由を説明する
 - OS、実行中のプロセス、環境変数の関係を説明する
-- fixture、Dependency Override、テスト用DBの役割を切り分けて説明する
 - `nullable=True`とNOT NULL無効、`nullable=False`とNOT NULL有効の対応を混同せず説明する
 - Alembicのベースライン、`stamp`、マイグレーションファイル、DB内の`alembic_version`の関係を説明する
 - HTTPレスポンスオブジェクトと、`status_code`・JSONボディを区別する
@@ -19,13 +18,13 @@
 ## 学習中
 
 - 主キーとUNIQUE制約の共通点・役割の違い
-- API側の重複確認とDBのUNIQUE制約を併用する理由
 - CRUD全体を別の要件から一貫して自力実装する
+- `IntegrityError`、`error.orig`、`UniqueViolation`の関係
+- 競合を決まった順番で再現するテストと、本当の並列実行テストの違い
 
 ## 今後学習
 
-- PostgreSQLを使う統合テスト
-- SQLiteとPostgreSQLの違い
+- トランザクション分離レベルと同時更新
 - 認証・認可
 - Docker、CI、デプロイ
 
@@ -51,6 +50,10 @@
 - 外部キー、`relationship()`、`back_populates`、JOIN
 - `@property`とPydanticの`from_attributes=True`による出版社名のレスポンス変換
 - N+1問題と`joinedload()`、イベントリスナーによるSELECT回数の検証
+- fixtureは行初期化、AlembicはDB構造の再現を担当する役割分担
+- API側の事前検索とPostgreSQLのUNIQUE制約を併用する理由
+- SQLiteとPostgreSQLの違いと、テスト専用PostgreSQLを使う範囲
+- `TRUNCATE`と`RESTART IDENTITY`によるテストデータ初期化
 
 今後の類似課題で、ヒントなしに設計・実装・説明できるか確認する。
 

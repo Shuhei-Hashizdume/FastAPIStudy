@@ -86,7 +86,7 @@
 ## Phase 5：PostgreSQLと実務的なDB管理
 
 - [x] PostgreSQLの導入と接続
-- [ ] SQLiteとの違いを説明する
+- [x] SQLiteとの違いを説明する
 - [x] リレーション、外部キー、JOIN
 - [x] 一意制約とNOT NULL
 - [x] インデックス

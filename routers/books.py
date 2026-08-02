@@ -5,6 +5,7 @@ from database import get_db
 from sqlalchemy.orm import Session, joinedload
 from models import BookDB
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from psycopg.errors import UniqueViolation
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -27,9 +28,17 @@ def add_book(book: BookRequest, db: Session = Depends(get_db)):
         db.refresh(book_db)
 
         return book_db
-    except IntegrityError:
+    except IntegrityError as error:
         logger.exception("書籍データがDB制約に違反しました。")
         db.rollback()
+        if (
+            isinstance(error.orig, UniqueViolation)
+            and error.orig.diag.constraint_name == "uq_books_isbn"
+        ):
+            raise HTTPException(
+                status_code=409, detail="同じISBNの書籍がすでに登録されています。"
+            )
+
         raise HTTPException(status_code=500, detail="書籍の登録処理中に失敗しました。")
     except SQLAlchemyError:
         logger.exception("書籍の登録に失敗しました。")
