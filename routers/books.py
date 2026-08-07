@@ -2,7 +2,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Query
 from schemas import BookRequest, BookResponse, BookUpdate
 from database import get_db
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, session
 from models import BookDB
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from psycopg.errors import UniqueViolation
@@ -83,6 +83,7 @@ def update_book(book_id: int, book: BookUpdate, db: Session = Depends(get_db)):
         target_book = db.query(BookDB).filter(BookDB.book_id == book_id).first()
         if target_book is None:
             raise HTTPException(status_code=404, detail="該当する本がありません。")
+        update_values = {}
         if book.isbn is not None:
             existing_book = db.query(BookDB).filter(BookDB.isbn == book.isbn).first()
             if (
@@ -93,12 +94,26 @@ def update_book(book_id: int, book: BookUpdate, db: Session = Depends(get_db)):
                     status_code=409,
                     detail="同じISBNの書籍がすでに登録されています。",
                 )
-            target_book.isbn = book.isbn
+            update_values["isbn"] = book.isbn
         if book.title is not None:
-            target_book.title = book.title
+            update_values["title"] = book.title
         if book.author is not None:
-            target_book.author = book.author
+            update_values["author"] = book.author
+        update_values["version"] = BookDB.version + 1
 
+        updated_rows = (
+            db.query(BookDB)
+            .filter(BookDB.book_id == book_id, BookDB.version == book.version)
+            .update(
+                update_values,
+                synchronize_session=False,
+            )
+        )
+        if updated_rows == 0:
+            db.rollback()
+            raise HTTPException(
+                status_code=409, detail="該当の書籍がすでに更新されています。"
+            )
         db.commit()
         db.refresh(target_book)
         return target_book

@@ -1,54 +1,19 @@
-import os
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, inspect, event, text
-from sqlalchemy.orm import Session, sessionmaker, Query
+from sqlalchemy import inspect, event
+from sqlalchemy.orm import Session, Query
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from sqlalchemy.engine import make_url
 from models import BookDB, PublisherDB
-from database import get_db
-from main import app
+from threading import Barrier, Thread
+from queue import Queue
+from psycopg.errors import UniqueViolation
+from tests.support import client, test_engine, TestingSessionLocal
 
 TEST_ISBN_1 = "9780000000002"
 TEST_ISBN_2 = "9780000000019"
 TEST_ISBN_3 = "9780000000026"
 
-TEST_DATABASE_URL = os.environ[
-    "TEST_DATABASE_URL"
-]  # "TEST_DATABASE_URL"中の値が無ければ、エラーになる。
 
-test_database_name = make_url(TEST_DATABASE_URL).database
-if test_database_name != "fastapi_study_test":
-    raise RuntimeError("テスト用DB fastapi_study_test 以外への接続を拒否しました。")
-
-test_engine = create_engine(TEST_DATABASE_URL)
-
-
-TestingSessionLocal = sessionmaker(bind=test_engine)
-
-
-def override_get_db():
-    session = TestingSessionLocal()
-    try:
-        yield session
-    finally:
-        session.close()
-
-
-app.dependency_overrides[get_db] = override_get_db
-client = TestClient(app)
-
-
-def clear_test_data():
-    with test_engine.begin() as connection:  # Connectionオブジェクトを変数へ
-        connection.execute(text("TRUNCATE TABLE books, publishers RESTART IDENTITY"))
-
-
-@pytest.fixture(autouse=True)
-def reset_database():
-    clear_test_data()
-    yield
-    clear_test_data()
+pytestmark = pytest.mark.usefixtures("reset_database")
 
 
 # 登録
@@ -69,6 +34,7 @@ def test_create_book():
         "author": "テスト太郎",
         "isbn": "9781234567890",
         "publisher_name": None,
+        "version": 1,
     }
 
 
@@ -170,6 +136,7 @@ def test_get_book():
         "author": "取得太郎",
         "isbn": TEST_ISBN_1,
         "publisher_name": None,
+        "version": 1,
     }
 
 
@@ -339,10 +306,11 @@ def test_update_book_title():
     assert create_response.status_code == 201
 
     book_id = create_response.json()["book_id"]
+    current_version = create_response.json()["version"]
 
     response = client.patch(
         f"/books/{book_id}",
-        json={"title": "変更後のタイトル"},
+        json={"title": "変更後のタイトル", "version": current_version},
     )
 
     assert response.status_code == 200
@@ -352,7 +320,42 @@ def test_update_book_title():
         "author": "変更しない著者",
         "isbn": TEST_ISBN_1,
         "publisher_name": None,
+        "version": 2,
     }
+
+
+# 更新　異常系
+def test_update_book_returns_409_when_version_is_stale():
+    response = client.post(
+        "/books",
+        json={
+            "title": "テスト本",
+            "author": "テスト太郎",
+            "isbn": "1234567899876",
+        },
+    )
+
+    book_id = response.json()["book_id"]
+    current_version = response.json()["version"]
+
+    assert response.status_code == 201
+
+    patch_response = client.patch(
+        f"/books/{book_id}", json={"title": "テスト書籍", "version": current_version}
+    )
+
+    assert patch_response.status_code == 200
+    assert patch_response.json()["title"] == "テスト書籍"
+    assert patch_response.json()["version"] == 2
+
+    second_patch_response = client.patch(
+        f"/books/{book_id}", json={"title": "テスト", "version": current_version}
+    )
+
+    assert second_patch_response.status_code == 409
+    assert (
+        second_patch_response.json()["detail"] == "該当の書籍がすでに更新されています。"
+    )
 
 
 # 削除　正常系
@@ -447,6 +450,7 @@ def test_update_book_sqlalchemy_error(monkeypatch, caplog):
     assert post_response.status_code == 201
 
     book_id = post_response.json()["book_id"]
+    current_version = post_response.json()["version"]
 
     def raise_commit_error(self):
         raise SQLAlchemyError("テスト用更新DBエラー")
@@ -455,7 +459,7 @@ def test_update_book_sqlalchemy_error(monkeypatch, caplog):
 
     response = client.patch(
         f"/books/{book_id}",
-        json={"title": "更新後タイトル"},
+        json={"title": "更新後タイトル", "version": current_version},
     )
 
     assert response.status_code == 500
@@ -631,6 +635,9 @@ def test_update_book_with_null(update_body, expected_title, expected_author):
     assert post_response.status_code == 201
 
     book_id = post_response.json()["book_id"]
+    current_version = post_response.json()["version"]
+
+    update_body["version"] = current_version
 
     response = client.patch(
         f"/books/{book_id}",
@@ -738,6 +745,7 @@ def test_create_book_with_isbn():
         "author": "テスト著者",
         "isbn": TEST_ISBN_2,
         "publisher_name": None,
+        "version": 1,
     }
 
 
@@ -804,12 +812,11 @@ def test_update_book_isbn():
 
     assert post_response.status_code == 201
     book_id = post_response.json()["book_id"]
+    current_version = post_response.json()["version"]
 
     response = client.patch(
         f"/books/{book_id}",
-        json={
-            "isbn": TEST_ISBN_2,
-        },
+        json={"isbn": TEST_ISBN_2, "version": current_version},
     )
 
     assert response.status_code == 200
@@ -845,12 +852,11 @@ def test_update_book_with_duplicate_isbn():
     assert second_post_response.status_code == 201
 
     book_id = second_post_response.json()["book_id"]
+    current_version = second_post_response.json()["version"]
 
     response = client.patch(
         f"/books/{book_id}",
-        json={
-            "isbn": "1234567890123",
-        },
+        json={"isbn": "1234567890123", "version": current_version},
     )
 
     assert response.status_code == 409
@@ -1076,3 +1082,245 @@ def test_create_book_returns_409_when_unique_constraint_fails(monkeypatch):
 
     assert response.status_code == 409
     assert response.json() == {"detail": "同じISBNの書籍がすでに登録されています。"}
+
+
+def test_uncommitted_book_is_not_visible_to_other_session():
+    with (
+        TestingSessionLocal() as session_a,
+        TestingSessionLocal() as session_b,
+    ):
+        book = BookDB(
+            title="未確定の本",
+            author="テスト著者",
+            isbn=TEST_ISBN_1,
+        )
+        session_a.add(book)
+        session_a.flush()
+
+        book_seen_by_a = (
+            session_a.query(BookDB).filter(BookDB.isbn == TEST_ISBN_1).first()
+        )
+
+        assert book_seen_by_a is not None
+
+        book_seen_by_b = (
+            session_b.query(BookDB).filter(BookDB.isbn == TEST_ISBN_1).first()
+        )
+
+        assert book_seen_by_b is None
+
+        session_a.commit()
+
+        book_seen_by_b_after_commit = (
+            session_b.query(BookDB).filter(BookDB.isbn == TEST_ISBN_1).first()
+        )
+
+        assert book_seen_by_b_after_commit is not None
+
+
+def test_repeatable_read_keeps_same_snapshot_until_transaction_ends():
+    with (
+        TestingSessionLocal() as session_a,
+        TestingSessionLocal() as session_b,
+    ):
+        connection_b = session_b.connection(
+            execution_options={"isolation_level": "REPEATABLE READ"}
+        )
+        assert connection_b.get_isolation_level() == "REPEATABLE READ"
+
+        book_before_commit = (
+            session_b.query(BookDB).filter(BookDB.isbn == TEST_ISBN_1).first()
+        )
+
+        assert book_before_commit is None
+
+        book = BookDB(
+            title="追加本",
+            author="テスト著者",
+            isbn=TEST_ISBN_1,
+        )
+        session_a.add(book)
+        session_a.commit()
+
+        book_after_commit = (
+            session_b.query(BookDB).filter(BookDB.isbn == TEST_ISBN_1).first()
+        )
+
+        assert book_after_commit is None
+
+        session_b.commit()
+
+        book_in_new_transaction = (
+            session_b.query(BookDB).filter(BookDB.isbn == TEST_ISBN_1).first()
+        )
+
+        assert book_in_new_transaction is not None
+
+
+def test_two_sessions_compete_for_same_isbn():
+    barrier = Barrier(2)
+    results: Queue[str] = Queue()
+
+    def register_book():
+        with TestingSessionLocal() as session:
+            existing_book = (
+                session.query(BookDB).filter(BookDB.isbn == TEST_ISBN_1).first()
+            )
+            if existing_book is not None:
+                results.put("precheck_found")
+                return
+            barrier.wait(timeout=5)
+
+            book = BookDB(
+                title="同時登録される本", author="テスト著者", isbn=TEST_ISBN_1
+            )
+            session.add(book)
+
+            try:
+                session.commit()
+                results.put("committed")
+            except IntegrityError as error:
+                session.rollback()
+
+                if (
+                    isinstance(error.orig, UniqueViolation)
+                    and error.orig.diag.constraint_name == "uq_books_isbn"
+                ):
+                    results.put("conflict")
+                else:
+                    results.put("unexpected_integrity_error")
+
+    thread_a = Thread(target=register_book)
+    thread_b = Thread(target=register_book)
+
+    thread_a.start()
+    thread_b.start()
+
+    thread_a.join(timeout=10)
+    thread_b.join(timeout=10)
+
+    assert thread_a.is_alive() is False
+    assert thread_b.is_alive() is False
+
+    actual_results = sorted(
+        [
+            results.get(timeout=1),
+            results.get(timeout=1),
+        ]
+    )
+
+    assert actual_results == ["committed", "conflict"]
+
+    with TestingSessionLocal() as session:
+        saved_books = session.query(BookDB).filter(BookDB.isbn == TEST_ISBN_1).all()
+
+        assert len(saved_books) == 1
+
+
+def test_update_book_returns_422_when_version_is_missing():
+    post_response = client.post(
+        "/books",
+        json={
+            "title": "テスト本A",
+            "author": "テスト太郎",
+            "isbn": "1234567899876",
+        },
+    )
+
+    assert post_response.status_code == 201
+
+    book_id = post_response.json()["book_id"]
+
+    response = client.patch(
+        f"/books/{book_id}",
+        json={
+            "title": "テスト本B",
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["type"] == "missing"
+    assert response.json()["detail"][0]["loc"] == ["body", "version"]
+
+
+def test_update_book_returns_422_when_version_is_zero():
+    post_response = client.post(
+        "/books",
+        json={
+            "title": "テスト本A",
+            "author": "テスト太郎",
+            "isbn": "1234567899876",
+        },
+    )
+
+    assert post_response.status_code == 201
+
+    book_id = post_response.json()["book_id"]
+
+    response = client.patch(
+        f"/books/{book_id}", json={"title": "テスト本B", "version": 0}
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["type"] == "greater_than_equal"
+    assert response.json()["detail"][0]["loc"] == ["body", "version"]
+
+
+def test_two_requests_compete_to_update_same_book():
+
+    barrier = Barrier(2)
+    results: Queue[int] = Queue()
+
+    post_response = client.post(
+        "/books",
+        json={
+            "title": "テスト本A",
+            "author": "テスト太郎",
+            "isbn": "1234567899876",
+        },
+    )
+
+    assert post_response.status_code == 201
+
+    book_id = post_response.json()["book_id"]
+    current_version = post_response.json()["version"]
+
+    def update_book_in_thread(title: str):
+        barrier.wait(timeout=5)
+
+        response = client.patch(
+            f"/books/{book_id}",
+            json={
+                "title": title,
+                "version": current_version,
+            },
+        )
+
+        results.put(response.status_code)
+
+    thread_a = Thread(target=update_book_in_thread, args=("テスト書籍A",))
+    thread_b = Thread(target=update_book_in_thread, args=("テスト書籍B",))
+
+    thread_a.start()
+    thread_b.start()
+
+    thread_a.join(timeout=10)
+    thread_b.join(timeout=10)
+
+    assert thread_a.is_alive() is False
+    assert thread_b.is_alive() is False
+
+    actual_results = sorted(
+        [
+            results.get(timeout=1),
+            results.get(timeout=1),
+        ]
+    )
+
+    assert actual_results == [200, 409]
+
+    get_response = client.get(f"/books/{book_id}")
+
+    assert get_response.status_code == 200
+    assert get_response.json()["version"] == 2
+    assert get_response.json()["title"] in ["テスト書籍A", "テスト書籍B"]

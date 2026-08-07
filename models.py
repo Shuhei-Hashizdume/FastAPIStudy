@@ -10,6 +10,7 @@ class BookDB(Base):
     author = Column(String, nullable=False, index=True)
     isbn = Column(String, nullable=False, unique=True)
     publisher_id = Column(Integer, ForeignKey("publishers.publisher_id"), nullable=True)
+    version = Column(Integer, nullable=False, server_default="1")
     publisher = relationship(
         "PublisherDB", back_populates="books"
     )  # カラムではなく、属性！
@@ -26,3 +27,13 @@ class PublisherDB(Base):
     publisher_id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False, unique=True)
     books = relationship("BookDB", back_populates="publisher")  # カラムではなく、属性！
+
+
+class UserDB(Base):
+    __tablename__ = "users"
+    user_id = Column(
+        Integer,
+        primary_key=True,
+    )
+    email = Column(String, nullable=False, unique=True)
+    hashed_password = Column(String, nullable=False)

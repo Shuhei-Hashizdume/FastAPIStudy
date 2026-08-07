@@ -1,4 +1,5 @@
 from pydantic import BaseModel, ConfigDict, Field
+from pydantic import EmailStr
 
 
 class BookRequest(BaseModel):
@@ -26,6 +27,7 @@ class BookUpdate(BaseModel):
         max_length=13,
         pattern=r"^[0-9]+$",
     )
+    version: int = Field(ge=1)
 
 
 # response_model用
@@ -36,3 +38,18 @@ class BookResponse(BaseModel):
     author: str
     isbn: str
     publisher_name: str | None
+    version: int
+
+
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str = Field(
+        min_length=8,
+        max_length=128,
+    )
+
+
+class UserResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    user_id: int
+    email: EmailStr
