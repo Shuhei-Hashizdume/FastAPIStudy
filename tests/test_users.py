@@ -1,8 +1,11 @@
 import pytest
 from pydantic import ValidationError
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 from schemas import UserCreate
 from schemas import UserResponse
 from models import UserDB
+from security import verify_password
 
 
 def test_user_create_accepts_valid_input():
@@ -60,3 +63,100 @@ def test_user_response_reads_userdb_attributes():
     response_body = response_user.model_dump()
 
     assert "hashed_password" not in response_body
+
+
+def test_create_user(reset_database):
+    from tests.support import client
+
+    response = client.post(
+        "/users",
+        json={
+            "email": "test@example.com",
+            "password": "test_love",
+        },
+    )
+
+    assert response.status_code == 201
+    response_body = response.json()
+    assert "user_id" in response_body
+    assert response_body["user_id"] == 1
+    assert "email" in response_body
+    assert response_body["email"] == "test@example.com"
+    assert "password" not in response_body
+    assert "hashed_password" not in response_body
+
+
+def test_create_user_saves_hashed_password(reset_database):
+    from tests.support import TestingSessionLocal, client
+
+    plain_password = "test_love"
+
+    response = client.post(
+        "/users",
+        json={
+            "email": "test@example.com",
+            "password": plain_password,
+        },
+    )
+
+    assert response.status_code == 201
+    user_email = response.json()["email"]
+
+    with TestingSessionLocal() as session:
+        saved_user = session.query(UserDB).filter(UserDB.email == user_email).first()
+        assert saved_user is not None
+        assert saved_user.hashed_password != plain_password
+        assert verify_password(plain_password, saved_user.hashed_password) is True
+
+
+def test_create_user_returns_409_when_email_is_duplicated(reset_database):
+    from tests.support import client
+
+    first_post_response = client.post(
+        "/users",
+        json={
+            "email": "test@example.com",
+            "password": "test_love",
+        },
+    )
+
+    assert first_post_response.status_code == 201
+
+    second_post_response = client.post(
+        "/users",
+        json={
+            "email": "test@example.com",
+            "password": "past_love",
+        },
+    )
+
+    assert second_post_response.status_code == 409
+    assert (
+        second_post_response.json()["detail"]
+        == "同じメールアドレスのユーザーがすでに登録されています。"
+    )
+
+
+def test_create_user_returns_500_when_database_fails(
+    reset_database, monkeypatch, caplog
+):
+    from tests.support import client
+
+    def raise_commit_error(self):
+        raise SQLAlchemyError("テスト用DBエラー")
+
+    monkeypatch.setattr(Session, "commit", raise_commit_error)
+
+    response = client.post(
+        "/users",
+        json={
+            "email": "test@example.com",
+            "password": "past_love",
+        },
+    )
+
+    assert response.status_code == 500
+    assert response.json()["detail"] == "ユーザーの登録処理中に失敗しました。"
+    assert "ユーザーの登録に失敗しました。" in caplog.text
+    assert "テスト用DBエラー" in caplog.text
+    assert "SQLAlchemyError" in caplog.text
