@@ -1,4 +1,10 @@
-from security import hash_password, verify_password
+from security import (
+    create_access_token,
+    decode_access_token,
+    hash_password,
+    verify_password,
+)
+from datetime import datetime, timezone
 
 
 def test_hash_password_returns_different_string():
@@ -39,3 +45,38 @@ def test_hash_password_uses_different_salt_each_time():
     hashed_password2 = hash_password(same_password)
 
     assert hashed_password1 != hashed_password2
+
+
+def test_create_access_token_contains_subject_and_expiration(monkeypatch):
+    import jwt
+    from security import create_access_token
+
+    test_secret_key = "a" * 32
+
+    monkeypatch.setenv(
+        "JWT_SECRET_KEY",
+        test_secret_key,
+    )
+
+    access_token = create_access_token(subject="1")
+    decoded_payload = jwt.decode(
+        access_token,
+        test_secret_key,
+        algorithms=["HS256"],
+    )
+
+    assert decoded_payload["sub"] == "1"
+    assert "exp" in decoded_payload
+
+    remaining_seconds = decoded_payload["exp"] - datetime.now(timezone.utc).timestamp()
+    assert 29 * 60 <= remaining_seconds <= 30 * 60
+
+
+def test_decode_access_token_returns_payload(monkeypatch):
+    test_secret_key = "A" * 32
+    monkeypatch.setenv("JWT_SECRET_KEY", test_secret_key)
+    access_token = create_access_token(subject="1")
+    payload = decode_access_token(token=access_token)
+
+    assert payload["sub"] == "1"
+    assert "exp" in payload
