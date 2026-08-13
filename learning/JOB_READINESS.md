@@ -22,12 +22,12 @@
 | APIレスポンス設計 | ヒントありで実装可能 | 1件・複数件を区別し、DBモデルとレスポンスモデルを分離。`from_attributes` を実装済み |
 | CRUD全体 | ヒントありで実装可能 | 更新・削除を実装し、検索からトランザクション、レスポンスまで説明。別要件からCRUD全体を自力設計する確認は未実施 |
 | ファイル分割・設計 | ヒントありで実装可能 | DB接続、DBモデル、Pydanticスキーマ、Router、アプリ本体へ分割し、責務を説明 |
-| APIテスト・pytest | ヒントありで実装可能 | テスト専用PostgreSQL、`TestClient`、fixture、Dependency Override、モック、`caplog`、SQL回数監視を使い53ケースが成功 |
+| APIテスト・pytest | ヒントありで実装可能 | テスト専用PostgreSQL、`TestClient`、fixture、Dependency Override、モック、SQL回数監視、認証・認可、同時実行を含む92ケースが成功 |
 | 環境構築・設定管理 | 基礎理解 | `venv`、`requirements.txt`、READMEの構築手順、`DATABASE_URL` の環境変数化を実施。OS・プロセス・環境変数の関係は要復習 |
-| PostgreSQL | ヒントありで実装可能 | 接続、Alembic、CRUD、永続化、`psql`、テスト専用DB、`TRUNCATE`によるデータ分離、UNIQUE競合処理を実装・確認。本当の並列実行と分離レベルは今後確認 |
+| PostgreSQL | ヒントありで実装可能 | 接続、Alembic、CRUD、テスト用DB分離、UNIQUE競合、本当の並列実行、REPEATABLE READ、楽観的ロック、所有者外部キーを実装・確認 |
 | Alembic | ヒントありで実装可能 | ベースライン、`stamp`、SQLiteバッチ変更、段階的なISBN追加、upgrade・downgrade、空DB再現を実施。別要件からの自力設計は今後確認 |
-| 認証・認可 | 未学習 | 実装・学習記録なし |
-| セキュリティ | 未学習 | 実務形式での確認なし |
+| 認証・認可 | ヒントありで実装可能 | Argon2、JWT、Bearer認証、`/users/me`、書籍所有者の保存、PATCH・DELETEの403認可と正常・異常系テストを実装。別要件への応用は今後確認 |
+| セキュリティ | 基礎理解 | 平文パスワードを保存しない設計、秘密鍵の環境変数化、JWT期限・署名検証、秘密情報をレスポンスへ含めない設計を確認。CORSと主要脅威は今後学習 |
 | Docker | 未学習 | 構成・学習記録なし |
 | CI/CD・デプロイ | 未学習 | 実践記録なし |
 | ログ・障害調査 | ヒントありで実装可能 | `logger.exception()`、スタックトレース、`IntegrityError`・`SQLAlchemyError`、`caplog`による確認を実施 |
@@ -35,9 +35,9 @@
 
 ## 現在の総合判定
 
-FastAPIとSQLAlchemyのCRUD APIについて、PostgreSQL接続、テスト専用DB、外部キー・JOIN、インデックス、N+1対策、Alembic、正常系・異常系テスト、commit時のUNIQUE競合処理まで進んだ段階。就職応募用の完成ポートフォリオや、ジュニアとして実務参加できる段階にはまだ到達していない。
+FastAPIとSQLAlchemyのCRUD APIについて、PostgreSQL、Alembic、テスト専用DB、同時実行・楽観的ロック、Argon2、JWT認証、所有者ベース認可、正常系・異常系テストまで進んだ段階。就職応募用の完成ポートフォリオや、ジュニアとして実務参加できる段階にはまだ到達していない。
 
-直近では本当の同時実行、トランザクション分離レベル、同時更新を学習する。その後、認証とDockerを段階的に実務形式へつなげる。
+直近では認可設計を仕上げ、CORS・秘密情報・主要なWeb API脅威を学習する。その後、Dockerを段階的に実務形式へつなげる。
 
 ## 最終評価の考え方
 

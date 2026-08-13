@@ -231,3 +231,47 @@
 - `event.remove()`を`finally`で実行し、テストが追加した監視を後続テストへ残さない
 - 出版社付き書籍2冊のレスポンスとSELECT 1回をテストし、全53ケースの成功を確認した
 - 今後の確認：別のリレーションでもN+1を発見し、適切な読み込み方法を選べるか確認する
+
+## トランザクション分離レベルと同時更新
+
+- 状態：基礎学習完了・経過観察
+- 分離レベルは、同時に動くトランザクションから見えるデータを制御する設定の枠である
+- PostgreSQLのREAD COMMITTEDとREPEATABLE READを比較し、REPEATABLE READでは同じトランザクション中に同じスナップショットを維持することを確認した
+- `session.connection(execution_options={"isolation_level": "REPEATABLE READ"})`でSessionが使うConnectionへ分離レベルを設定した
+- 2つのThread、Barrier、Queueを使い、同じISBNの同時登録で1件だけcommitされ、もう1件がUNIQUE競合になることを確認した
+- `books.version`と条件付き`Query.update()`を使い、同じversionを基にした同時更新の片方を409にする楽観的ロックを実装した
+- `Query.update()`は更新内容の辞書を受け取り、更新件数を整数で返す。0件ならversionが一致しない競合として扱う
+- `synchronize_session=False`ではSession内の既存オブジェクトを自動同期せず、commit後の`refresh()`でDBの最新値を読み直す
+
+## パスワードハッシュとJWT認証
+
+- 状態：基礎学習完了・経過観察
+- `pwdlib`とArgon2で平文パスワードからハッシュを作り、ログイン時は平文へ戻さず検証する
+- `UserDB.hashed_password`はAPIレスポンスへ含めず、`UserResponse`で公開項目を制限する
+- JWTはheader、payload、signatureからなり、payloadはBase64URL表現されるが暗号化されていないため秘密情報を入れない
+- JWTの`sub`へユーザーID、`exp`へ有効期限を入れ、HS256と環境変数の秘密鍵で署名する
+- `HTTPBearer`がAuthorizationヘッダーを読み、`HTTPAuthorizationCredentials.credentials`からJWT文字列を取得する
+- `Depends(get_current_user)`により、FastAPIはエンドポイント関数より先にJWT検証とUserDB検索を実行する
+- トークンなし、不正・期限切れJWT、ユーザー不在を401としてテストした
+- `client.get()`などの戻り値はResponseオブジェクトで、`.json()`はJSONボディをPython値へ変換し、`.headers`はHeadersオブジェクトを返す
+
+## 所有者ベース認可
+
+- 状態：基礎学習完了・経過観察
+- 認証は「誰か」、認可は「その利用者が操作してよいか」を確認する
+- `books.owner_id`を`users.user_id`への外部キー・NOT NULLとして追加し、既存行を守るためnullable追加、データ移行、NOT NULL化の2段階で進めた
+- `owner_id=current_user.user_id`と代入できるのは`BookDB.owner_id`カラムがあるためで、ForeignKeyは保存時に参照先ユーザーの存在をDBで保証する
+- クライアントへ`owner_id`を指定させず、JWTから取得したユーザーIDをサーバーが設定することで所有者の偽装を防ぐ
+- PATCH・DELETEでは対象書籍の存在を404で確認した後、`target_book.owner_id`と`current_user.user_id`を比較し、不一致を403にする
+- 401は認証できない状態、403は認証済みだが操作権限がない状態として使い分ける
+- 他人によるPATCH・DELETEが403となり、書籍が変更・削除されないことをGETで確認した
+
+## 認証済みfixtureと狭いモック
+
+- 状態：基礎学習完了・要経過観察
+- `authenticated_client` fixtureはDB初期化、秘密鍵設定、ユーザー登録、ログイン、JWTヘッダー設定を行い、`yield`後に共有clientのAuthorizationを削除する
+- `pytestmark = pytest.mark.usefixtures("authenticated_client")`はfixtureの準備処理を各テスト前に実行し、引数で受け取る場合は`yield client`の値を直接利用できる
+- fixtureがcommitしたユーザー行は、テスト内の別Sessionから検索できる。Python変数を直接共有しているわけではない
+- `Query.first()`全体のモックは認証用UserDB検索まで`None`にして401を起こしたため、ISBN検索を`find_book_by_isbn()`へ分離し、その関数だけをモックした
+- モック関数は置き換え対象と同じ呼び出し方を受け取る必要があり、キーワード引数`isbn=`・`db=`に対して引数名`_isbn`・`_db`ではTypeErrorになる
+- テスト対象ではないNOT NULL・外部キーには正常値を与え、確認したい制約や振る舞いだけを意図的に変える

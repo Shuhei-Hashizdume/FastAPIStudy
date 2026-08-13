@@ -14,18 +14,20 @@
 - `commit()`内の`flush()`でIDが取得される流れと、`refresh()`でDBの最新値を読み直す役割を区別する
 - 関数定義による関数オブジェクト生成、コールバック登録、SQLAlchemyによる呼び出しを主語付きで説明する
 - SQLAlchemyイベントが渡す値は検索結果ではなく、SQL実行直前の接続・SQL文・パラメータなどであることを説明する
+- fixtureの`yield`前後、`pytestmark.usefixtures()`、テスト関数の引数でfixtureの値を受け取る場合の違いを説明する
+- 位置引数とキーワード引数の違い、およびモック関数が元の関数と同じ呼び出し方を受け取る必要性を説明する
+- 認証失敗の401と、認証済みだが権限がない403の違いを処理順付きで説明する
 
 ## 学習中
 
 - 主キーとUNIQUE制約の共通点・役割の違い
 - CRUD全体を別の要件から一貫して自力実装する
 - `IntegrityError`、`error.orig`、`UniqueViolation`の関係
-- 競合を決まった順番で再現するテストと、本当の並列実行テストの違い
+- 所有者ベース認可を別のデータ要件へ応用する
+- CORS、秘密情報、主要なWeb API脅威
 
 ## 今後学習
 
-- トランザクション分離レベルと同時更新
-- 認証・認可
 - Docker、CI、デプロイ
 
 ## 経過観察
@@ -54,6 +56,13 @@
 - API側の事前検索とPostgreSQLのUNIQUE制約を併用する理由
 - SQLiteとPostgreSQLの違いと、テスト専用PostgreSQLを使う範囲
 - `TRUNCATE`と`RESTART IDENTITY`によるテストデータ初期化
+- 本当の2スレッド同時実行、`Barrier`、`Queue`による結果収集
+- READ COMMITTED・REPEATABLE READとスナップショット
+- version条件付きUPDATEによる楽観的ロックと409
+- Argon2によるパスワードハッシュ、JWTの発行・検証、Bearer認証
+- `Depends(get_current_user)`による現在ユーザー取得
+- `owner_id`と`current_user.user_id`の比較によるPATCH・DELETE認可
+- Responseオブジェクト、JSONボディ、Headersオブジェクトの区別
 
 今後の類似課題で、ヒントなしに設計・実装・説明できるか確認する。
 

@@ -22,6 +22,10 @@ FastAPI、Pydantic、SQLAlchemy、SQLite、PostgreSQLを使い、Web APIとデ�
 - PostgreSQL接続、外部キー、JOIN、インデックス
 - 出版社名を含む書籍レスポンスと`joinedload()`によるN+1対策
 - テスト専用PostgreSQLと、commit時のISBN競合を409へ変換する処理
+- Argon2によるパスワードハッシュとユーザー登録
+- JWTログイン、Bearer認証、`GET /users/me`
+- 書籍所有者の保存と、PATCH・DELETEの所有者ベース認可
+- versionを使った楽観的ロックと、本当の同時実行・分離レベルのテスト
 
 更新・削除を含め、コードが存在するだけでは学習完了や成果物完成とは判定しない。
 
@@ -34,7 +38,7 @@ FastAPI、Pydantic、SQLAlchemy、SQLite、PostgreSQLを使い、Web APIとデ�
 - DELETEは204・本文なしとし、404を含めて動作確認済み
 - DB接続、DBモデル、Pydanticスキーマ、Router、FastAPIアプリ本体をファイル分割済み
 - `APIRouter` で書籍APIをFastAPIアプリへ登録済み
-- テスト専用PostgreSQLと `TestClient` を使い、CRUD、絞り込み、ページネーション、入力境界値、DB例外、制約、外部キー、JOIN、N+1対策、ISBN競合を含む53ケースが成功
+- テスト専用PostgreSQLと `TestClient` を使い、CRUD、入力境界値、DB制約、JOIN、N+1、同時実行、JWT認証、所有者認可を含む92ケースが成功
 - `DATABASE_URL` を環境変数から読む構成とし、未設定時のSQLite初期値を用意済み
 - `logger.exception()`で開発者向けの詳細を残し、クライアントには内部情報を隠した500レスポンスを返す
 - `IntegrityError`と`SQLAlchemyError`を分け、モックと`caplog`で異常系を確認済み
@@ -48,15 +52,20 @@ FastAPI、Pydantic、SQLAlchemy、SQLite、PostgreSQLを使い、Web APIとデ�
 - `joinedload()`とSQLAlchemyイベントによるSELECT回数テストでN+1対策を確認済み
 - テスト接続先を`fastapi_study_test`へ限定し、Alembicの構造を残したまま`TRUNCATE`で行だけを初期化する安全策を実装済み
 - commit時に`uq_books_isbn`違反が起きた場合も、`UniqueViolation`を判定して409へ変換する処理とテストを実装済み
+- `users`テーブル、Argon2ハッシュ、重複メールの409、ログインとJWT発行・検証を実装済み
+- 正常・不正・期限切れJWT、トークンなし、ユーザー不在の認証テストを実装済み
+- `books.owner_id`をnullableで追加し、既存行を移行後にNOT NULL化する段階的マイグレーションを実装済み
+- 書籍作成時にJWTから得たユーザーを所有者として保存し、所有者以外のPATCH・DELETEを403で拒否する認可を実装済み
+- 認証済みTestClientを作るfixtureと、認可の正常系・異常系テストを実装済み
 - `requirements.txt` とREADMEにより、環境構築、DBマイグレーション、起動、テスト、API仕様を他の人が確認できる
 - GitHubリポジトリ `Shuhei-Hashizdume/FastAPIStudy` へ接続し、開発履歴の記録を開始済み
 
 ### 次の改善
 
-1. 本当の並列実行とトランザクション分離レベルを確認する
-2. 同時更新時の競合と対策を確認する
-3. CRUD全体を別の要件から自力実装できるか確認する
-4. READMEに設計理由とトレードオフを追加する
+1. CORS、秘密情報、主要なWeb API脅威を確認する
+2. 現在の所有者ベース認可の対象範囲と読み取り権限を設計する
+3. CRUD・認証・認可を別の要件から自力実装できるか確認する
+4. READMEに認証・認可、設計理由、トレードオフを追加する
 
 ### 基礎練習プロジェクトの完了条件
 

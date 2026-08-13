@@ -386,3 +386,61 @@ DBインデックスが必要になる理由から開始する。まず、イン
 ### 次回開始地点
 
 今回の`monkeypatch`テストが本当の同時実行ではない理由を復習する。その後、トランザクション分離レベルが同時処理から見えるデータへどう影響するかを、小さなPostgreSQLテストで確認する。
+
+## 2026-08-13：JWT認証と書籍所有者ベース認可
+
+### 実施内容
+
+- Argon2によるパスワードのハッシュ化・検証、ユーザー登録、メール重複時の409変換を実装した
+- JWTの作成・検証、ログイン、Bearer認証、`GET /users/me`を実装した
+- トークンなし、不正JWT、期限切れJWT、JWTのユーザーがDBに存在しない場合を401としてテストした
+- `books.owner_id`を`users.user_id`への外部キーとして追加した
+- 既存書籍を安全に移行するため、nullableで追加して既存行を更新後、別マイグレーションでNOT NULL化した
+- 開発用・テスト用PostgreSQLへ2つのマイグレーションを適用し、`8972e235fa78 (head)`と実際の制約を確認した
+- `POST /books`を認証必須にし、JWTから取得した`current_user.user_id`を`owner_id`として保存した
+- PATCH・DELETEで書籍所有者とログイン中ユーザーを比較し、所有者以外を403で拒否した
+- `authenticated_client` fixtureで登録・ログイン・JWTヘッダー設定・後片付けを共通化した
+- 既存のDB直接操作テストへ有効な`owner_id`を追加し、元の検証対象以外の制約違反を防いだ
+- `Query.first()`全体のモックが認証用UserDB検索まで壊したため、ISBN検索を`find_book_by_isbn()`へ分離してモック対象を狭めた
+- 本当の2スレッド同時ISBN登録、REPEATABLE READ、version条件付きUPDATEによる楽観的ロックを実装・確認した
+
+### 理解確認できた内容
+
+- 認証は利用者が誰かを確認し、認可はその利用者が操作してよいかを確認する
+- `HTTPBearer`は`Depends(bearer_scheme)`によりエンドポイント関数より先にAuthorizationヘッダーを処理する
+- `client.get()`・`post()`の戻り値はResponseオブジェクトであり、PydanticレスポンスモデルやJSONボディとは別である
+- `response.headers`は辞書のように扱えるHTTP専用のHeadersオブジェクトである
+- `owner_id=current_user.user_id`と代入できる直接の理由は`BookDB.owner_id`カラムがあるためで、外部キーは参照先IDの存在をDBで保証する
+- `owner_id`をクライアント入力に含めず、認証結果からサーバーが決めることで所有者の偽装を防ぐ
+- `pytestmark`はfixtureを先に実行させ、fixtureがcommitしたユーザーは別Sessionから検索できる
+- `yield client`はfixtureの値をテストへ渡し、`yield`後は共有clientのAuthorizationヘッダーを削除する
+- モックは指定したクラス全体へ影響し得るため、確認したい小さな責務だけを置き換える
+- キーワード引数で呼ばれるモック関数は、元の呼び出しと一致する引数名を受け取る必要がある
+- REPEATABLE READのSession Bでは、最初のSELECTがスナップショットの基準になるため、準備用検索を別Sessionで行う
+- `Queue[str]`はスレッド間で文字列の結果を安全に受け渡し、`sorted()`は業務上の意味ではなく文字列順で結果をそろえる
+
+### 動作確認
+
+- 開発用・テスト用DB：`8972e235fa78 (head)`
+- `psql`：`books.owner_id`のinteger、NOT NULL、`fk_books_owner_id_users`を確認
+- PATCH：所有者以外は403、書籍タイトルは変更されない
+- DELETE：所有者以外は403、書籍は削除されない
+- pytest：92ケース収集、学習者の環境で全件成功
+- Git：コミット`675f52a`をGitHubへpush済み
+
+### 完了判定
+
+- 完了：パスワードハッシュの作成・検証と秘密情報を返さないユーザー登録
+- 完了：JWT発行・検証、Bearer認証、現在ユーザー取得
+- 完了：認証の主要な正常系・異常系テスト
+- 完了：本当の同時ISBN登録、REPEATABLE READ、versionによる楽観的ロックの基礎
+- 完了：書籍所有者の段階的マイグレーション、保存、PATCH・DELETEの所有者認可
+- 完了：所有者認可の403と、操作されていないDB状態のテスト
+- 経過観察：fixtureの実行順と共有状態を別のfixtureでも自力設計できるか
+- 経過観察：モック対象と関数シグネチャを別の例でも自力判断できるか
+- 未完了：CORS、秘密情報、主要なWeb API脅威の基礎
+- 未完了：所有者ベース以外のロール・権限設計
+
+### 次回開始地点
+
+認証と認可、401と403、クライアントに`owner_id`を指定させない理由を短く復習する。その後、現在の読み取りAPIを誰に公開するかという認可方針を整理し、CORS・秘密情報・主要なWeb API脅威を1項目ずつ扱う。
