@@ -1,8 +1,8 @@
 import pytest
 from sqlalchemy import inspect, event
-from sqlalchemy.orm import Session, Query
+from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from models import BookDB, PublisherDB
+from models import BookDB, PublisherDB, UserDB
 from threading import Barrier, Thread
 from queue import Queue
 from psycopg.errors import UniqueViolation
@@ -13,12 +13,12 @@ TEST_ISBN_2 = "9780000000019"
 TEST_ISBN_3 = "9780000000026"
 
 
-pytestmark = pytest.mark.usefixtures("reset_database")
+pytestmark = pytest.mark.usefixtures("authenticated_client")
 
 
 # 登録
-def test_create_book():
-    response = client.post(
+def test_create_book(authenticated_client):
+    response = authenticated_client.post(
         "/books",
         json={
             "title": "pytest入門",
@@ -766,11 +766,21 @@ def test_create_book_with_duplicate_isbn():
 
 def test_book_isbn_unique_constraint():
     with TestingSessionLocal() as session:
-        first_book = BookDB(title="テストA", author="著者A", isbn="1234567890123")
+        owner = (
+            session.query(UserDB)
+            .filter(UserDB.email == "book-owner@example.com")
+            .first()
+        )
+        owner_id = owner.user_id
+        first_book = BookDB(
+            title="テストA", author="著者A", isbn="1234567890123", owner_id=owner_id
+        )
         session.add(first_book)
         session.commit()
 
-        second_book = BookDB(title="テストB", author="著者B", isbn="1234567890123")
+        second_book = BookDB(
+            title="テストB", author="著者B", isbn="1234567890123", owner_id=owner_id
+        )
         session.add(second_book)
 
         with pytest.raises(IntegrityError):
@@ -893,6 +903,12 @@ def test_book_author_index():
 
 def test_book_publisher_relationship():
     with TestingSessionLocal() as session:
+        owner = (
+            session.query(UserDB)
+            .filter(UserDB.email == "book-owner@example.com")
+            .first()
+        )
+        owner_id = owner.user_id
         publisher = PublisherDB(name="技術出版")
         session.add(publisher)
         session.commit()
@@ -903,6 +919,7 @@ def test_book_publisher_relationship():
             author="テスト太郎",
             isbn="9780000000033",
             publisher=publisher,
+            owner_id=owner_id,
         )
         session.add(book)
         session.commit()
@@ -943,10 +960,16 @@ def test_book_publisher_foreign_key_constraint():
 
 def test_left_outer_join_includes_book_without_publisher():
     with TestingSessionLocal() as session:
+        owner = (
+            session.query(UserDB)
+            .filter(UserDB.email == "book-owner@example.com")
+            .first()
+        )
         book = BookDB(
             title="出版社なしの本",
             author="テスト太朗",
             isbn="9780000000057",
+            owner_id=owner.user_id,
         )
         session.add(book)
         session.commit()
@@ -969,6 +992,12 @@ def test_left_outer_join_includes_book_without_publisher():
 
 def test_get_book_returns_publisher_name():
     with TestingSessionLocal() as session:
+        owner = (
+            session.query(UserDB)
+            .filter(UserDB.email == "book-owner@example.com")
+            .first()
+        )
+        owner_id = owner.user_id
         publisher = PublisherDB(name="技術出版")
         session.add(publisher)
         session.commit()
@@ -979,6 +1008,7 @@ def test_get_book_returns_publisher_name():
             author="テスト太郎",
             isbn="1234567890987",
             publisher=publisher,
+            owner_id=owner_id,
         )
         session.add(book)
         session.commit()
@@ -1007,6 +1037,12 @@ def test_list_books_loads_publishers_in_one_select():
             select_statements.append(statement)
 
     with TestingSessionLocal() as session:
+        owner = (
+            session.query(UserDB)
+            .filter(UserDB.email == "book-owner@example.com")
+            .first()
+        )
+
         publisher_a = PublisherDB(name="出版社A")
         publisher_b = PublisherDB(name="出版社B")
 
@@ -1017,11 +1053,19 @@ def test_list_books_loads_publishers_in_one_select():
         session.refresh(publisher_b)
 
         book_a = BookDB(
-            title="書籍A", author="著者A", isbn="9780000000071", publisher=publisher_a
+            title="書籍A",
+            author="著者A",
+            isbn="9780000000071",
+            publisher=publisher_a,
+            owner_id=owner.user_id,
         )
 
         book_b = BookDB(
-            title="書籍B", author="著者B", isbn="9780000000088", publisher=publisher_b
+            title="書籍B",
+            author="著者B",
+            isbn="9780000000088",
+            publisher=publisher_b,
+            owner_id=owner.user_id,
         )
 
         session.add(book_a)
@@ -1053,21 +1097,27 @@ def test_list_books_loads_publishers_in_one_select():
 
 
 def test_create_book_returns_409_when_unique_constraint_fails(monkeypatch):
+    import routers.books
+
     with TestingSessionLocal() as session:
+        owner = (
+            session.query(UserDB)
+            .filter(UserDB.email == "book-owner@example.com")
+            .first()
+        )
+        owner_id = owner.user_id
         existing_book = BookDB(
-            title="既存の本",
-            author="既存の著者",
-            isbn=TEST_ISBN_1,
+            title="既存の本", author="既存の著者", isbn=TEST_ISBN_1, owner_id=owner_id
         )
         session.add(existing_book)
         session.commit()
 
-    def return_none(_query):
+    def return_none(isbn, db):
         return None
 
     monkeypatch.setattr(
-        Query,
-        "first",
+        routers.books,
+        "find_book_by_isbn",
         return_none,
     )
 
@@ -1089,10 +1139,16 @@ def test_uncommitted_book_is_not_visible_to_other_session():
         TestingSessionLocal() as session_a,
         TestingSessionLocal() as session_b,
     ):
+        owner = (
+            session_a.query(UserDB)
+            .filter(UserDB.email == "book-owner@example.com")
+            .first()
+        )
         book = BookDB(
             title="未確定の本",
             author="テスト著者",
             isbn=TEST_ISBN_1,
+            owner_id=owner.user_id,
         )
         session_a.add(book)
         session_a.flush()
@@ -1134,10 +1190,16 @@ def test_repeatable_read_keeps_same_snapshot_until_transaction_ends():
 
         assert book_before_commit is None
 
+        owner = (
+            session_a.query(UserDB)
+            .filter(UserDB.email == "book-owner@example.com")
+            .first()
+        )
+
+        owner_id = owner.user_id
+
         book = BookDB(
-            title="追加本",
-            author="テスト著者",
-            isbn=TEST_ISBN_1,
+            title="追加本", author="テスト著者", isbn=TEST_ISBN_1, owner_id=owner_id
         )
         session_a.add(book)
         session_a.commit()
@@ -1163,6 +1225,12 @@ def test_two_sessions_compete_for_same_isbn():
 
     def register_book():
         with TestingSessionLocal() as session:
+            owner = (
+                session.query(UserDB)
+                .filter(UserDB.email == "book-owner@example.com")
+                .first()
+            )
+            owner_id = owner.user_id
             existing_book = (
                 session.query(BookDB).filter(BookDB.isbn == TEST_ISBN_1).first()
             )
@@ -1172,7 +1240,10 @@ def test_two_sessions_compete_for_same_isbn():
             barrier.wait(timeout=5)
 
             book = BookDB(
-                title="同時登録される本", author="テスト著者", isbn=TEST_ISBN_1
+                title="同時登録される本",
+                author="テスト著者",
+                isbn=TEST_ISBN_1,
+                owner_id=owner_id,
             )
             session.add(book)
 
@@ -1324,3 +1395,106 @@ def test_two_requests_compete_to_update_same_book():
     assert get_response.status_code == 200
     assert get_response.json()["version"] == 2
     assert get_response.json()["title"] in ["テスト書籍A", "テスト書籍B"]
+
+
+def test_update_book_returns_403_for_non_owner(authenticated_client):
+    create_response = authenticated_client.post(
+        "/books",
+        json={
+            "title": "ユーザーAの本",
+            "author": "著者A",
+            "isbn": TEST_ISBN_1,
+        },
+    )
+
+    assert create_response.status_code == 201
+    book_id = create_response.json()["book_id"]
+
+    other_user_response = authenticated_client.post(
+        "/users",
+        json={
+            "email": "other-user@example.com",
+            "password": "test_love",
+        },
+    )
+
+    assert other_user_response.status_code == 201
+
+    other_login_response = authenticated_client.post(
+        "/login",
+        json={
+            "email": "other-user@example.com",
+            "password": "test_love",
+        },
+    )
+
+    assert other_login_response.status_code == 200
+    other_access_token = other_login_response.json()["access_token"]
+
+    authenticated_client.headers.update(
+        {
+            "Authorization": f"Bearer {other_access_token}",
+        }
+    )
+
+    update_response = authenticated_client.patch(
+        f"/books/{book_id}",
+        json={
+            "title": "ユーザーBによる変更",
+            "version": 1,
+        },
+    )
+
+    assert update_response.status_code == 403
+    assert update_response.json()["detail"] == "この書籍を変更する権限がありません。"
+
+    get_response = authenticated_client.get(f"/books/{book_id}")
+
+    assert get_response.status_code == 200
+    assert get_response.json()["title"] == "ユーザーAの本"
+
+
+def test_delete_book_returns_403_for_non_owner(authenticated_client):
+    create_response = authenticated_client.post(
+        "/books",
+        json={
+            "title": "ユーザーAの本",
+            "author": "著者A",
+            "isbn": TEST_ISBN_1,
+        },
+    )
+    assert create_response.status_code == 201
+    book_id = create_response.json()["book_id"]
+
+    other_user_response = authenticated_client.post(
+        "/users",
+        json={
+            "email": "other-user@example.com",
+            "password": "test_love",
+        },
+    )
+    assert other_user_response.status_code == 201
+
+    login_other_user_response = authenticated_client.post(
+        "/login",
+        json={
+            "email": "other-user@example.com",
+            "password": "test_love",
+        },
+    )
+    assert login_other_user_response.status_code == 200
+    access_token = login_other_user_response.json()["access_token"]
+
+    authenticated_client.headers.update(
+        {
+            "Authorization": f"Bearer {access_token}",
+        }
+    )
+
+    delete_response = authenticated_client.delete(f"/books/{book_id}")
+    assert delete_response.status_code == 403
+    assert delete_response.json()["detail"] == "この書籍を削除する権限がありません。"
+
+    get_response = authenticated_client.get(f"/books/{book_id}")
+    assert get_response.status_code == 200
+    assert get_response.json()["title"] == "ユーザーAの本"

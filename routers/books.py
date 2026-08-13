@@ -3,25 +3,39 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from schemas import BookRequest, BookResponse, BookUpdate
 from database import get_db
 from sqlalchemy.orm import Session, joinedload, session
-from models import BookDB
+from models import BookDB, UserDB
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from psycopg.errors import UniqueViolation
+from routers.users import get_current_user
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
 # 登録
+def find_book_by_isbn(isbn: str, db: Session) -> BookDB | None:
+    return db.query(BookDB).filter(BookDB.isbn == isbn).first()
+
+
 @router.post("/books", status_code=201, response_model=BookResponse)
-def add_book(book: BookRequest, db: Session = Depends(get_db)):
+def add_book(
+    book: BookRequest,
+    db: Session = Depends(get_db),
+    current_user: UserDB = Depends(get_current_user),
+):
     try:
         if book.isbn is not None:
-            existing_book = db.query(BookDB).filter(BookDB.isbn == book.isbn).first()
+            existing_book = find_book_by_isbn(isbn=book.isbn, db=db)
             if existing_book is not None:
                 raise HTTPException(
                     status_code=409, detail="同じISBNの書籍がすでに登録されています。"
                 )
-        book_db = BookDB(title=book.title, author=book.author, isbn=book.isbn)
+        book_db = BookDB(
+            title=book.title,
+            author=book.author,
+            isbn=book.isbn,
+            owner_id=current_user.user_id,
+        )
 
         db.add(book_db)
         db.commit()
@@ -78,11 +92,21 @@ def show_book(book_id: int, db: Session = Depends(get_db)):
 
 # 一部更新
 @router.patch("/books/{book_id}", response_model=BookResponse)
-def update_book(book_id: int, book: BookUpdate, db: Session = Depends(get_db)):
+def update_book(
+    book_id: int,
+    book: BookUpdate,
+    db: Session = Depends(get_db),
+    current_user: UserDB = Depends(get_current_user),
+):
     try:
         target_book = db.query(BookDB).filter(BookDB.book_id == book_id).first()
         if target_book is None:
             raise HTTPException(status_code=404, detail="該当する本がありません。")
+        if target_book.owner_id != current_user.user_id:
+            raise HTTPException(
+                status_code=403, detail="この書籍を変更する権限がありません。"
+            )
+
         update_values = {}
         if book.isbn is not None:
             existing_book = db.query(BookDB).filter(BookDB.isbn == book.isbn).first()
@@ -127,12 +151,20 @@ def update_book(book_id: int, book: BookUpdate, db: Session = Depends(get_db)):
 
 # 削除
 @router.delete("/books/{book_id}", status_code=204)
-def delete_book(book_id: int, db: Session = Depends(get_db)):
+def delete_book(
+    book_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserDB = Depends(get_current_user),
+):
     try:
         target_book = db.query(BookDB).filter(BookDB.book_id == book_id).first()
 
         if target_book is None:
             raise HTTPException(status_code=404, detail="該当する本がありません。")
+        if target_book.owner_id != current_user.user_id:
+            raise HTTPException(
+                status_code=403, detail="この書籍を削除する権限がありません。"
+            )
 
         db.delete(target_book)
         db.commit()

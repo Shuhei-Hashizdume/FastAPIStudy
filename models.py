@@ -10,6 +10,11 @@ class BookDB(Base):
     author = Column(String, nullable=False, index=True)
     isbn = Column(String, nullable=False, unique=True)
     publisher_id = Column(Integer, ForeignKey("publishers.publisher_id"), nullable=True)
+    owner_id = Column(
+        Integer,
+        ForeignKey("users.user_id"),
+        nullable=False,
+    )
     version = Column(Integer, nullable=False, server_default="1")
     publisher = relationship(
         "PublisherDB", back_populates="books"
