@@ -2,7 +2,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Query
 from schemas import BookRequest, BookResponse, BookUpdate
 from database import get_db
-from sqlalchemy.orm import Session, joinedload, session
+from sqlalchemy.orm import Session, joinedload
 from models import BookDB, UserDB
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from psycopg.errors import UniqueViolation

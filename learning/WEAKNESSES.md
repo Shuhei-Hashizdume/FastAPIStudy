@@ -24,7 +24,7 @@
 - CRUD全体を別の要件から一貫して自力実装する
 - `IntegrityError`、`error.orig`、`UniqueViolation`の関係
 - 所有者ベース認可を別のデータ要件へ応用する
-- CORS、秘密情報、主要なWeb API脅威
+- レート制限の実装と、本番環境でのSecrets Managerなどを使った秘密情報管理
 
 ## 今後学習
 
@@ -63,6 +63,9 @@
 - `Depends(get_current_user)`による現在ユーザー取得
 - `owner_id`と`current_user.user_id`の比較によるPATCH・DELETE認可
 - Responseオブジェクト、JSONボディ、Headersオブジェクトの区別
+- CORSのプリフライト、実際のレスポンス、`Access-Control-Allow-Origin`、ブラウザの判断主体
+- `.env`、`.env.example`、実行中プロセスの環境変数の役割分担
+- BOLA、プロパティ単位の認可不備、リソース消費、SQLインジェクションと現在の対策
 
 今後の類似課題で、ヒントなしに設計・実装・説明できるか確認する。
 

@@ -26,6 +26,8 @@ FastAPI、Pydantic、SQLAlchemy、SQLite、PostgreSQLを使い、Web APIとデ�
 - JWTログイン、Bearer認証、`GET /users/me`
 - 書籍所有者の保存と、PATCH・DELETEの所有者ベース認可
 - versionを使った楽観的ロックと、本当の同時実行・分離レベルのテスト
+- 明示した許可オリジンだけへ応答するCORS設定と正常系・異常系テスト
+- `.env`のGit除外と、必要な環境変数を安全に共有する`.env.example`
 
 更新・削除を含め、コードが存在するだけでは学習完了や成果物完成とは判定しない。
 
@@ -38,7 +40,7 @@ FastAPI、Pydantic、SQLAlchemy、SQLite、PostgreSQLを使い、Web APIとデ�
 - DELETEは204・本文なしとし、404を含めて動作確認済み
 - DB接続、DBモデル、Pydanticスキーマ、Router、FastAPIアプリ本体をファイル分割済み
 - `APIRouter` で書籍APIをFastAPIアプリへ登録済み
-- テスト専用PostgreSQLと `TestClient` を使い、CRUD、入力境界値、DB制約、JOIN、N+1、同時実行、JWT認証、所有者認可を含む92ケースが成功
+- テスト専用PostgreSQLと `TestClient` を使い、CRUD、入力境界値、DB制約、JOIN、N+1、同時実行、JWT認証、所有者認可、CORSを含む全件テストが成功
 - `DATABASE_URL` を環境変数から読む構成とし、未設定時のSQLite初期値を用意済み
 - `logger.exception()`で開発者向けの詳細を残し、クライアントには内部情報を隠した500レスポンスを返す
 - `IntegrityError`と`SQLAlchemyError`を分け、モックと`caplog`で異常系を確認済み
@@ -57,15 +59,17 @@ FastAPI、Pydantic、SQLAlchemy、SQLite、PostgreSQLを使い、Web APIとデ�
 - `books.owner_id`をnullableで追加し、既存行を移行後にNOT NULL化する段階的マイグレーションを実装済み
 - 書籍作成時にJWTから得たユーザーを所有者として保存し、所有者以外のPATCH・DELETEを403で拒否する認可を実装済み
 - 認証済みTestClientを作るfixtureと、認可の正常系・異常系テストを実装済み
+- CORSプリフライトの許可・拒否と、実際のGETレスポンスに付く許可ヘッダーをテスト済み
+- JWT秘密鍵、開発DB、テストDBに必要な環境変数名を、本物の値を含めず`.env.example`で共有済み
 - `requirements.txt` とREADMEにより、環境構築、DBマイグレーション、起動、テスト、API仕様を他の人が確認できる
 - GitHubリポジトリ `Shuhei-Hashizdume/FastAPIStudy` へ接続し、開発履歴の記録を開始済み
 
 ### 次の改善
 
-1. CORS、秘密情報、主要なWeb API脅威を確認する
-2. 現在の所有者ベース認可の対象範囲と読み取り権限を設計する
-3. CRUD・認証・認可を別の要件から自力実装できるか確認する
-4. READMEに認証・認可、設計理由、トレードオフを追加する
+1. 現在の所有者ベース認可の対象範囲と読み取り権限を設計する
+2. CRUD・認証・認可を別の要件から自力実装できるか確認する
+3. READMEに認証・認可、CORS、環境変数、設計理由、トレードオフを追加する
+4. Dockerと本番向け秘密情報管理へ進む
 
 ### 基礎練習プロジェクトの完了条件
 
