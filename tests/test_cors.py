@@ -30,10 +30,9 @@ def test_cors_preflight_rejects_unconfigured_origin():
     assert "access-control-allow-origin" not in response.headers
 
 
-def test_cors_adds_allow_origin_header_to_actual_response():
-    from tests.support import client
+def test_cors_adds_allow_origin_header_to_actual_response(authenticated_client):
 
-    response = client.get(
+    response = authenticated_client.get(
         "/books",
         headers={
             "Origin": "http://localhost:3000",

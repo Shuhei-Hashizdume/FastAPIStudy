@@ -291,3 +291,15 @@
 - `limit <= 100`は1回の取得件数を制限するが、短時間の大量リクエストを防ぐレート制限は未実装である
 - SQLAlchemyの通常のクエリはSQLと値を分離するが、生SQLをf文字列で組み立てるとSQLインジェクションの危険が残る
 - `UserResponse`で`hashed_password`を除外し、詳細ログと安全なHTTPエラーを分けて情報漏えいを防ぐ
+
+## 個人用書籍APIの読み取り認可
+
+- 状態：基礎学習完了・経過観察
+- 公開カタログではなく個人用サービスと要件を決め、一覧・1件取得も`Depends(get_current_user)`で認証必須にした
+- 一覧は`BookDB.owner_id == current_user.user_id`をクエリへ追加し、他人の書籍をPythonへ取得する前にPostgreSQL側で除外する
+- 1件取得は`book_id`と`owner_id`を同じ`.filter()`へ渡し、両方に一致しなければ`.first()`が`None`となる
+- 他人の1件取得は書籍の存在を知らせないため404、本人の一覧が0件なら正常な検索結果として200と空リストを返す
+- 未ログインではHTTPBearerが401を返し、エンドポイント関数や書籍検索まで進まない
+- 非所有者の更新・削除後にDB状態を確認するテストでは、GET前に保存済みの所有者Authorizationへ戻す
+- 認証追加により一覧取得のSELECTは利用者検索1回と書籍・出版社の一括取得1回になり、N+1テストの期待値を合計2回へ更新した
+- CORSの実レスポンステストでは、認証必須の`/books`へ`authenticated_client`でAuthorizationとOriginを両方送る

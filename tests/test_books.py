@@ -1093,7 +1093,7 @@ def test_list_books_loads_publishers_in_one_select():
     assert len(response_body) == 2
     assert response_body[0]["publisher_name"] == "出版社A"
     assert response_body[1]["publisher_name"] == "出版社B"
-    assert len(select_statements) == 1
+    assert len(select_statements) == 2
 
 
 def test_create_book_returns_409_when_unique_constraint_fails(monkeypatch):
@@ -1419,6 +1419,7 @@ def test_update_book_returns_403_for_non_owner(authenticated_client):
     )
 
     assert other_user_response.status_code == 201
+    owner_authorization = authenticated_client.headers["Authorization"]
 
     other_login_response = authenticated_client.post(
         "/login",
@@ -1448,6 +1449,12 @@ def test_update_book_returns_403_for_non_owner(authenticated_client):
     assert update_response.status_code == 403
     assert update_response.json()["detail"] == "この書籍を変更する権限がありません。"
 
+    authenticated_client.headers.update(
+        {
+            "Authorization": owner_authorization,
+        }
+    )
+
     get_response = authenticated_client.get(f"/books/{book_id}")
 
     assert get_response.status_code == 200
@@ -1465,6 +1472,8 @@ def test_delete_book_returns_403_for_non_owner(authenticated_client):
     )
     assert create_response.status_code == 201
     book_id = create_response.json()["book_id"]
+
+    owner_authorization = authenticated_client.headers["Authorization"]
 
     other_user_response = authenticated_client.post(
         "/users",
@@ -1495,6 +1504,98 @@ def test_delete_book_returns_403_for_non_owner(authenticated_client):
     assert delete_response.status_code == 403
     assert delete_response.json()["detail"] == "この書籍を削除する権限がありません。"
 
+    authenticated_client.headers.update({"Authorization": owner_authorization})
+
     get_response = authenticated_client.get(f"/books/{book_id}")
     assert get_response.status_code == 200
     assert get_response.json()["title"] == "ユーザーAの本"
+
+
+def test_list_books_returns_only_current_users_books(authenticated_client):
+    post_response = authenticated_client.post(
+        "/books",
+        json={
+            "title": "ユーザーAの本",
+            "author": "著者A",
+            "isbn": TEST_ISBN_1,
+        },
+    )
+    assert post_response.status_code == 201
+
+    other_user_response = authenticated_client.post(
+        "/users",
+        json={
+            "email": "other-user@example.com",
+            "password": "test_love",
+        },
+    )
+    assert other_user_response.status_code == 201
+
+    login_other_user_response = authenticated_client.post(
+        "/login",
+        json={
+            "email": "other-user@example.com",
+            "password": "test_love",
+        },
+    )
+    assert login_other_user_response.status_code == 200
+    access_token = login_other_user_response.json()["access_token"]
+
+    authenticated_client.headers.update({"Authorization": f"Bearer {access_token}"})
+
+    get_response = authenticated_client.get("/books")
+    assert get_response.status_code == 200
+    assert get_response.json() == []
+
+
+def test_get_book_returns_404_for_non_owner(authenticated_client):
+    post_response = authenticated_client.post(
+        "/books",
+        json={
+            "title": "ユーザーAの本",
+            "author": "著者A",
+            "isbn": TEST_ISBN_1,
+        },
+    )
+    assert post_response.status_code == 201
+    book_id = post_response.json()["book_id"]
+
+    other_user_response = authenticated_client.post(
+        "/users",
+        json={
+            "email": "other-user@example.com",
+            "password": "test_love",
+        },
+    )
+    assert other_user_response.status_code == 201
+
+    login_other_user_response = authenticated_client.post(
+        "/login",
+        json={
+            "email": "other-user@example.com",
+            "password": "test_love",
+        },
+    )
+    assert login_other_user_response.status_code == 200
+    access_token = login_other_user_response.json()["access_token"]
+
+    authenticated_client.headers.update({"Authorization": f"Bearer {access_token}"})
+
+    get_response = authenticated_client.get(f"/books/{book_id}")
+    assert get_response.status_code == 404
+    assert get_response.json()["detail"] == "該当する本がありません。"
+
+
+def test_list_books_returns_401_without_token(authenticated_client):
+    authenticated_client.headers.pop("Authorization", None)
+    get_response = authenticated_client.get("/books")
+
+    assert get_response.status_code == 401
+    assert get_response.json()["detail"] == "Not authenticated"
+
+
+def test_get_book_returns_401_without_token(authenticated_client):
+    authenticated_client.headers.pop("Authorization", None)
+    get_response = authenticated_client.get("/books/1")
+    assert get_response.status_code == 401
+    assert get_response.json()["detail"] == "Not authenticated"

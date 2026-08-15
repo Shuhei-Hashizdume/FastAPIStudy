@@ -25,6 +25,7 @@ FastAPI、Pydantic、SQLAlchemy、SQLite、PostgreSQLを使い、Web APIとデ�
 - Argon2によるパスワードハッシュとユーザー登録
 - JWTログイン、Bearer認証、`GET /users/me`
 - 書籍所有者の保存と、PATCH・DELETEの所有者ベース認可
+- 書籍一覧・1件取得の認証と、ログイン利用者の所有書籍だけを返す読み取り認可
 - versionを使った楽観的ロックと、本当の同時実行・分離レベルのテスト
 - 明示した許可オリジンだけへ応答するCORS設定と正常系・異常系テスト
 - `.env`のGit除外と、必要な環境変数を安全に共有する`.env.example`
@@ -59,6 +60,8 @@ FastAPI、Pydantic、SQLAlchemy、SQLite、PostgreSQLを使い、Web APIとデ�
 - `books.owner_id`をnullableで追加し、既存行を移行後にNOT NULL化する段階的マイグレーションを実装済み
 - 書籍作成時にJWTから得たユーザーを所有者として保存し、所有者以外のPATCH・DELETEを403で拒否する認可を実装済み
 - 認証済みTestClientを作るfixtureと、認可の正常系・異常系テストを実装済み
+- 一覧・1件取得を認証必須にし、本人の書籍だけ200、他人の1件は404、未ログインは401とする個人用サービスの認可を実装済み
+- 所有者別一覧、非所有者1件取得、未ログインGET、既存のSQL回数・CORSへの影響をテストし、全件成功を確認済み
 - CORSプリフライトの許可・拒否と、実際のGETレスポンスに付く許可ヘッダーをテスト済み
 - JWT秘密鍵、開発DB、テストDBに必要な環境変数名を、本物の値を含めず`.env.example`で共有済み
 - `requirements.txt` とREADMEにより、環境構築、DBマイグレーション、起動、テスト、API仕様を他の人が確認できる
@@ -66,7 +69,7 @@ FastAPI、Pydantic、SQLAlchemy、SQLite、PostgreSQLを使い、Web APIとデ�
 
 ### 次の改善
 
-1. 現在の所有者ベース認可の対象範囲と読み取り権限を設計する
+1. lint・format・型チェックを導入し、指摘を理解して修正する
 2. CRUD・認証・認可を別の要件から自力実装できるか確認する
 3. READMEに認証・認可、CORS、環境変数、設計理由、トレードオフを追加する
 4. Dockerと本番向け秘密情報管理へ進む

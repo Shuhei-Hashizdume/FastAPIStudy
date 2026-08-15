@@ -71,8 +71,13 @@ def show_books(
         le=100,
     ),
     db: Session = Depends(get_db),
+    current_user: UserDB = Depends(get_current_user),
 ):
-    query = db.query(BookDB).options(joinedload(BookDB.publisher))
+    query = (
+        db.query(BookDB)
+        .filter(BookDB.owner_id == current_user.user_id)
+        .options(joinedload(BookDB.publisher))
+    )
 
     if author is not None:
         query = query.filter(BookDB.author == author)
@@ -82,9 +87,17 @@ def show_books(
 
 # 条件による一部取得
 @router.get("/books/{book_id}", response_model=BookResponse)
-def show_book(book_id: int, db: Session = Depends(get_db)):
+def show_book(
+    book_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserDB = Depends(get_current_user),
+):
 
-    book = db.query(BookDB).filter(BookDB.book_id == book_id).first()
+    book = (
+        db.query(BookDB)
+        .filter(BookDB.book_id == book_id, BookDB.owner_id == current_user.user_id)
+        .first()
+    )
     if book is None:
         raise HTTPException(status_code=404, detail="該当する本がありません。")
     return book
