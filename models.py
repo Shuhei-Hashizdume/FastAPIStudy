@@ -1,22 +1,25 @@
+from sqlalchemy import ForeignKey, Integer, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from database import Base
-from sqlalchemy import Column, Integer, String, ForeignKey
-from sqlalchemy.orm import relationship
 
 
 class BookDB(Base):
     __tablename__ = "books"
-    book_id = Column(Integer, primary_key=True)
-    title = Column(String, nullable=False)
-    author = Column(String, nullable=False, index=True)
-    isbn = Column(String, nullable=False, unique=True)
-    publisher_id = Column(Integer, ForeignKey("publishers.publisher_id"), nullable=True)
-    owner_id = Column(
+    book_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    author: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    isbn: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    publisher_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("publishers.publisher_id"), nullable=True
+    )
+    owner_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey("users.user_id"),
         nullable=False,
     )
-    version = Column(Integer, nullable=False, server_default="1")
-    publisher = relationship(
+    version: Mapped[int] = mapped_column(Integer, nullable=False, server_default="1")
+    publisher: Mapped["PublisherDB | None"] = relationship(
         "PublisherDB", back_populates="books"
     )  # カラムではなく、属性！
 
@@ -29,16 +32,18 @@ class BookDB(Base):
 
 class PublisherDB(Base):
     __tablename__ = "publishers"
-    publisher_id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False, unique=True)
-    books = relationship("BookDB", back_populates="publisher")  # カラムではなく、属性！
+    publisher_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    books: Mapped[list[BookDB]] = relationship(
+        "BookDB", back_populates="publisher"
+    )  # カラムではなく、属性！
 
 
 class UserDB(Base):
     __tablename__ = "users"
-    user_id = Column(
+    user_id: Mapped[int] = mapped_column(
         Integer,
         primary_key=True,
     )
-    email = Column(String, nullable=False, unique=True)
-    hashed_password = Column(String, nullable=False)
+    email: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    hashed_password: Mapped[str] = mapped_column(String, nullable=False)

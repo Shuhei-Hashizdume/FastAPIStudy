@@ -4,11 +4,23 @@
 
 - 現在のフェーズ：テスト・品質・チーム開発
 - 現在のプロジェクト：書籍管理API
-- 今回の終了地点：書籍一覧・1件取得を認証必須にし、ログイン利用者の所有書籍だけを返す読み取り認可を実装・確認
-- 現在の学習状態：個人用書籍管理APIとして、作成・読み取り・更新・削除の認証・所有者認可方針と正常系・異常系テストがそろった
-- 次回講義：lint・format・型チェックの目的と役割を分け、現在のコードへ段階的に導入する
+- 今回の終了地点：Ruffによるlint・formatとmypy strictを導入し、SQLAlchemyモデルを2系の型付き記法へ移行して全品質チェックを成功させた
+- 現在の学習状態：個人用書籍管理APIへ認証・認可・PostgreSQLテストに加え、チームで共有できる静的検査と型チェックの基盤がそろった
+- 次回講義：Issueからタスクを分解し、ブランチ・コミット・Pull Requestで変更を説明する
 
 ## 今回完了した項目
+
+- Ruff 0.16.0を導入し、lintとformatが解決する問題をpytest・mypyと区別して説明した
+- import順、未使用import、複数`with`文を修正し、FastAPIの`Depends()`に対するB008はフレームワーク固有の例外として設定した
+- Alembicの`import models`が`Base.metadata`登録のために必要な副作用importであると判断し、`env.py`だけF401を無視した
+- 過去のマイグレーション履歴`alembic/versions/`をRuffの検査対象外にし、`ruff.toml`へチーム共通設定を記録した
+- mypy 2.3.0を導入し、基本検査・`--check-untyped-defs`・`--strict`の検査範囲を段階的に確認した
+- `declarative_base()`を`DeclarativeBase`へ変更し、全モデルのカラムを`Mapped`・`mapped_column()`へ移行した
+- nullableな`publisher_id`を`Mapped[int | None]`、単数relationshipを`PublisherDB | None`、複数relationshipを`list[BookDB]`として型付けした
+- `get_db()`を`Generator[Session, None, None]`、JWT payloadを`dict[str, Any]`、各エンドポイント関数を実際のPython戻り値で型付けした
+- SQLAlchemyのSQL式を含む`update_values`を外部ライブラリとの境界として`dict[Any, Any]`で明示した
+- `mypy.ini`へPython 3.14・strict・アプリ本体の検査対象を記録し、キャッシュを`.gitignore`へ追加した
+- `ruff check`、`ruff format --check`、mypy strict、pytest全件、`alembic check`をすべて成功させ、DB構造差分がないことを確認した
 
 - `GET /books`を認証必須にし、`owner_id == current_user.user_id`で本人の書籍だけをDB検索した
 - `GET /books/{book_id}`を認証必須にし、他人の書籍を存在しない書籍と同じ404として扱った
@@ -112,16 +124,17 @@
 
 ## 次回の完了条件
 
-- lint・format・型チェックがそれぞれ解決する問題を区別して説明する
-- 現在のコードへ各ツールを1つずつ適用し、指摘内容を理解して修正する
-- 対象確認とpytest全件を成功させる
+- Issueに目的・要件・完了条件を記述する
+- Issueを小さな実装・確認タスクへ分解する
+- 専用ブランチで変更をコミットし、Pull Requestに目的・変更内容・確認方法を書く
+- Ruff・mypy・pytestの結果をPull Requestの確認内容として示す
 
 ## 次回開始時の講師への指示
 
 次の3点を報告してから、目的と必要な理由を先に説明し、新しい用語を1つずつ扱う。
 
-- 前回の終了地点：個人用サービスとして書籍一覧・1件取得を認証必須・所有者限定にし、全件テスト成功
-- 今回の講義：lint・format・型チェックの全体像と導入
+- 前回の終了地点：Ruff・mypy strictを導入し、SQLAlchemy 2系の型付きモデルへ移行して全品質チェック成功
+- 今回の講義：Issueからのタスク分解、ブランチ、コミット、Pull Request
 - 現在のプロジェクト：書籍管理API
 
-最初に、pytestと静的なコード検査の違いを説明する。その後、lint・format・型チェックという設定の枠と各担当を示し、未説明のツールや設定をまとめて導入せず1つずつ扱う。
+最初に、Issue・ブランチ・コミット・Pull Requestが開発工程のどこを担当するか全体像を示す。その後、現在の未コミット変更を題材に、目的・完了条件・確認結果を学習者自身の言葉で整理する。

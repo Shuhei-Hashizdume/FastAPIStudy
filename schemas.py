@@ -1,5 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field
-from pydantic import EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class BookRequest(BaseModel):

@@ -1,10 +1,11 @@
+from datetime import datetime, timezone
+
 from security import (
     create_access_token,
     decode_access_token,
     hash_password,
     verify_password,
 )
-from datetime import datetime, timezone
 
 
 def test_hash_password_returns_different_string():
@@ -49,6 +50,7 @@ def test_hash_password_uses_different_salt_each_time():
 
 def test_create_access_token_contains_subject_and_expiration(monkeypatch):
     import jwt
+
     from security import create_access_token
 
     test_secret_key = "a" * 32

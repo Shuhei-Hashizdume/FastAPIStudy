@@ -29,6 +29,7 @@ FastAPI、Pydantic、SQLAlchemy、SQLite、PostgreSQLを使い、Web APIとデ�
 - versionを使った楽観的ロックと、本当の同時実行・分離レベルのテスト
 - 明示した許可オリジンだけへ応答するCORS設定と正常系・異常系テスト
 - `.env`のGit除外と、必要な環境変数を安全に共有する`.env.example`
+- Ruffによるlint・format、mypy strict、SQLAlchemy 2系の型付きモデルと共有設定
 
 更新・削除を含め、コードが存在するだけでは学習完了や成果物完成とは判定しない。
 
@@ -65,13 +66,14 @@ FastAPI、Pydantic、SQLAlchemy、SQLite、PostgreSQLを使い、Web APIとデ�
 - CORSプリフライトの許可・拒否と、実際のGETレスポンスに付く許可ヘッダーをテスト済み
 - JWT秘密鍵、開発DB、テストDBに必要な環境変数名を、本物の値を含めず`.env.example`で共有済み
 - `requirements.txt` とREADMEにより、環境構築、DBマイグレーション、起動、テスト、API仕様を他の人が確認できる
+- `ruff.toml`と`mypy.ini`で検査条件を共有し、Ruff・mypy strict・pytest・`alembic check`をすべて成功させた
 - GitHubリポジトリ `Shuhei-Hashizdume/FastAPIStudy` へ接続し、開発履歴の記録を開始済み
 
 ### 次の改善
 
-1. lint・format・型チェックを導入し、指摘を理解して修正する
+1. Issueからタスクを分解し、専用ブランチとPull Requestで変更・確認方法を説明する
 2. CRUD・認証・認可を別の要件から自力実装できるか確認する
-3. READMEに認証・認可、CORS、環境変数、設計理由、トレードオフを追加する
+3. READMEに認証・認可、CORS、環境変数、品質チェック、設計理由、トレードオフを追加する
 4. Dockerと本番向け秘密情報管理へ進む
 
 ### 基礎練習プロジェクトの完了条件

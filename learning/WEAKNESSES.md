@@ -32,6 +32,14 @@
 
 ## 経過観察
 
+- Ruffの指摘を機械的に直さず、一般的なルールとFastAPI・Alembic固有の例外を区別する
+- Ruff、mypy、pytestの担当を、書き方・型・実行結果として区別する
+- `Mapped`・`mapped_column()`・型付き`relationship()`を別モデルでも自力で設計する
+- `nullable=True`と`Mapped[T | None]`を対応させ、単数relationshipの`None`と複数relationshipの空リストを区別する
+- `response_model`とエンドポイント関数が実際に返すPythonオブジェクトの型を区別する
+- `Generator[Session, None, None]`で`yield`する値、外部から送る値、終了時のreturn値を説明する
+- `Any`をアプリ全体へ広げず、外部ライブラリとの狭い境界だけで使う判断
+
 - FastAPI、Pydantic、SQLAlchemy、Uvicorn、エンドポイント関数の担当
 - `response_model`とレスポンス用Pydanticスキーマ
 - `from_attributes`
@@ -79,6 +87,6 @@
 - DBモデルとAPI用Pydanticスキーマの役割の違い
 - ファイルの責務分割と`APIRouter`の基本
 - pytestでステータスコードとJSONレスポンスを検証する基本
-- Ruffによるフォーマットと不要importの整理
+- Ruffによるlint・formatと、mypy strictによる型チェックの基本
 - DB例外をモックで再現し、開発者向けログと安全な500レスポンスを分ける基本
 - NOT NULL制約をSQLiteで実際に発生させ、`pytest.raises`で検証する基本

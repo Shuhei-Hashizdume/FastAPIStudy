@@ -23,6 +23,7 @@
 | CRUD全体 | ヒントありで実装可能 | 更新・削除を実装し、検索からトランザクション、レスポンスまで説明。別要件からCRUD全体を自力設計する確認は未実施 |
 | ファイル分割・設計 | ヒントありで実装可能 | DB接続、DBモデル、Pydanticスキーマ、Router、アプリ本体へ分割し、責務を説明 |
 | APIテスト・pytest | ヒントありで実装可能 | テスト専用PostgreSQL、`TestClient`、fixture、Dependency Override、モック、SQL回数監視、認証・認可、同時実行、CORSを含む全件テストが成功 |
+| lint・format・型チェック | ヒントありで実装可能 | Ruffの指摘を分類して修正・設定し、mypy strictへ段階的に移行。SQLAlchemy 2系の型付きモデル、関数の引数・戻り値、外部ライブラリ境界の`Any`を実装し、全検査成功を確認 |
 | 環境構築・設定管理 | 基礎理解 | `venv`、`requirements.txt`、READMEの構築手順、`DATABASE_URL` の環境変数化を実施。OS・プロセス・環境変数の関係は要復習 |
 | PostgreSQL | ヒントありで実装可能 | 接続、Alembic、CRUD、テスト用DB分離、UNIQUE競合、本当の並列実行、REPEATABLE READ、楽観的ロック、所有者外部キーを実装・確認 |
 | Alembic | ヒントありで実装可能 | ベースライン、`stamp`、SQLiteバッチ変更、段階的なISBN追加、upgrade・downgrade、空DB再現を実施。別要件からの自力設計は今後確認 |
@@ -37,7 +38,7 @@
 
 FastAPIとSQLAlchemyのCRUD APIについて、PostgreSQL、Alembic、テスト専用DB、同時実行・楽観的ロック、Argon2、JWT認証、所有者ベース認可、正常系・異常系テストまで進んだ段階。就職応募用の完成ポートフォリオや、ジュニアとして実務参加できる段階にはまだ到達していない。
 
-直近ではlint・format・型チェックを導入し、コード品質の確認を実務形式へ近づける。その後、Issue・PR形式とDockerへ段階的につなげる。
+lint・format・型チェックを導入し、コード品質の確認を実務形式へ近づけた。次はIssueからのタスク分解、ブランチ、コミット、Pull Requestで変更を説明する流れを実践し、その後Dockerへ段階的につなげる。
 
 ## 最終評価の考え方
 

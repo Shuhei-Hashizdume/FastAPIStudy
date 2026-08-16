@@ -1,12 +1,15 @@
 import logging
+from typing import Any
+
 from fastapi import APIRouter, Depends, HTTPException, Query
-from schemas import BookRequest, BookResponse, BookUpdate
-from database import get_db
-from sqlalchemy.orm import Session, joinedload
-from models import BookDB, UserDB
-from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from psycopg.errors import UniqueViolation
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.orm import Session, joinedload
+
+from database import get_db
+from models import BookDB, UserDB
 from routers.users import get_current_user
+from schemas import BookRequest, BookResponse, BookUpdate
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -22,7 +25,7 @@ def add_book(
     book: BookRequest,
     db: Session = Depends(get_db),
     current_user: UserDB = Depends(get_current_user),
-):
+) -> BookDB:
     try:
         if book.isbn is not None:
             existing_book = find_book_by_isbn(isbn=book.isbn, db=db)
@@ -72,7 +75,7 @@ def show_books(
     ),
     db: Session = Depends(get_db),
     current_user: UserDB = Depends(get_current_user),
-):
+) -> list[BookDB]:
     query = (
         db.query(BookDB)
         .filter(BookDB.owner_id == current_user.user_id)
@@ -91,7 +94,7 @@ def show_book(
     book_id: int,
     db: Session = Depends(get_db),
     current_user: UserDB = Depends(get_current_user),
-):
+) -> BookDB:
 
     book = (
         db.query(BookDB)
@@ -110,7 +113,7 @@ def update_book(
     book: BookUpdate,
     db: Session = Depends(get_db),
     current_user: UserDB = Depends(get_current_user),
-):
+) -> BookDB:
     try:
         target_book = db.query(BookDB).filter(BookDB.book_id == book_id).first()
         if target_book is None:
@@ -120,7 +123,7 @@ def update_book(
                 status_code=403, detail="この書籍を変更する権限がありません。"
             )
 
-        update_values = {}
+        update_values: dict[Any, Any] = {}
         if book.isbn is not None:
             existing_book = db.query(BookDB).filter(BookDB.isbn == book.isbn).first()
             if (
@@ -168,7 +171,7 @@ def delete_book(
     book_id: int,
     db: Session = Depends(get_db),
     current_user: UserDB = Depends(get_current_user),
-):
+) -> None:
     try:
         target_book = db.query(BookDB).filter(BookDB.book_id == book_id).first()
 

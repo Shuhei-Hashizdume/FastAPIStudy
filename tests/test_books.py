@@ -1,12 +1,14 @@
-import pytest
-from sqlalchemy import inspect, event
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from models import BookDB, PublisherDB, UserDB
-from threading import Barrier, Thread
 from queue import Queue
+from threading import Barrier, Thread
+
+import pytest
 from psycopg.errors import UniqueViolation
-from tests.support import client, test_engine, TestingSessionLocal
+from sqlalchemy import event, inspect
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.orm import Session
+
+from models import BookDB, PublisherDB, UserDB
+from tests.support import TestingSessionLocal, client, test_engine
 
 TEST_ISBN_1 = "9780000000002"
 TEST_ISBN_2 = "9780000000019"
@@ -507,11 +509,10 @@ def test_delete_book_sqlalchemy_error(monkeypatch, caplog):
     ],
 )
 def test_book_not_null_constraint(title, author):
-    with TestingSessionLocal() as session:
-        with pytest.raises(IntegrityError):
-            book_db = BookDB(title=title, author=author, isbn=TEST_ISBN_1)
-            session.add(book_db)
-            session.commit()
+    with TestingSessionLocal() as session, pytest.raises(IntegrityError):
+        book_db = BookDB(title=title, author=author, isbn=TEST_ISBN_1)
+        session.add(book_db)
+        session.commit()
 
 
 def test_book_isbn_not_null_constraint():

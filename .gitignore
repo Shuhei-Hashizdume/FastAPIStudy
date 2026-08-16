@@ -2,3 +2,6 @@ __pycache__/
 venv/
 book.db
 .env
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/

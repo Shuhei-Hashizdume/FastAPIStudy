@@ -527,3 +527,47 @@ DBインデックスが必要になる理由から開始する。まず、イン
 ### 次回開始地点
 
 pytestが実行時の振る舞いを確認するのに対し、lint・format・型チェックがコードを実行する前に何を確認するか、全体像から学ぶ。各ツールを一度に入れず、役割を確認して1つずつ導入する。
+
+## 2026-08-16：Ruff・mypy strictとSQLAlchemy 2系型付きモデル
+
+### 実施内容
+
+- Ruff 0.16.0を導入し、import順、未使用import、複数`with`文を段階的に修正した
+- FastAPIの`Depends()`に対するB008、Alembicの副作用importに対するF401、過去のマイグレーション履歴を`ruff.toml`で適切に扱った
+- Ruffの`--select`、`--statistics`、対象を限定した`--fix`、`format --check`を使い分けた
+- mypy 2.3.0を導入し、通常検査、`--check-untyped-defs`、`--strict`の順で検査範囲を広げた
+- `declarative_base()`を`DeclarativeBase`へ変更し、全SQLAlchemyモデルを`Mapped`・`mapped_column()`と型付きrelationshipへ移行した
+- nullableな外部キー、単数・複数relationship、前方参照をPythonの型へ反映した
+- `get_db()`のGenerator型、JWT payloadの辞書型、SQLAlchemy更新辞書、エンドポイント関数の戻り値型を追加した
+- `mypy.ini`へstrict設定と検査対象を記録し、Ruff・mypy・pytestのキャッシュを`.gitignore`へ追加した
+
+### 理解確認できた内容
+
+- Ruffはコードの書き方、mypyは型の整合性、pytestは正常系・異常系を含む実際の動作を確認する
+- Ruffが自動修正可能と示しても、FastAPIやAlembicの意図したコードを機械的に削除してはいけない
+- `import models`はAlembicがモデルを`Base.metadata`へ登録するために必要である
+- SQLAlchemy 2系をインストールしていても、モデル記法に旧形式が残る場合がある
+- `Mapped[str]`はPython側の値、`mapped_column(String, nullable=False)`はDB側の型と制約を示す
+- `publisher_id`がNULLなら`book.publisher`はNone、出版社に書籍が0件なら`publisher.books`は空リストになる
+- `BookDB.version + 1`は整数値ではなく、PostgreSQLへ送るSQL式である
+- `response_model`とエンドポイント関数が実際に返すPythonオブジェクトの型は別である
+
+### 動作確認
+
+- `python -m ruff check .`：成功
+- `python -m ruff format --check .`：全対象ファイル整形済み
+- `python -m mypy`：strict設定で成功
+- `python -m pytest -q`：全件成功
+- `alembic check`：`No new upgrade operations detected.`
+
+### 完了判定
+
+- 完了：lint・format・型チェックが解決する問題の区別
+- 完了：Ruffの指摘を確認し、修正・限定除外・対象外設定を判断する基礎
+- 完了：mypy strictとSQLAlchemy 2系の型付きモデルへの移行
+- 完了：静的検査、型チェック、pytest、Alembic差分確認の品質確認フロー
+- 経過観察：別の機能でも戻り値型、nullable、relationship、外部ライブラリ境界の型を自力設計できるか
+
+### 次回開始地点
+
+Issue・ブランチ・コミット・Pull Requestが開発工程のどこを担当するか全体像を確認する。その後、現在の未コミット変更を題材に、Issueへ目的・要件・完了条件を整理し、専用ブランチとPull Requestで変更内容・確認方法を説明する。

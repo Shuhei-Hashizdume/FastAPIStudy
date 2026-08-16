@@ -2,10 +2,10 @@ import pytest
 from pydantic import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
-from schemas import UserCreate, UserResponse, UserLogin, TokenResponse
-from models import UserDB
-from security import verify_password
 
+from models import UserDB
+from schemas import TokenResponse, UserCreate, UserLogin, UserResponse
+from security import verify_password
 
 TEST_EMAIL = "test@example.com"
 TEST_PASSWORD = "test_love"
@@ -178,7 +178,7 @@ def test_user_login_accepts_valid_input():
 
 def test_authenticate_user_returns_user_for_valid_credentials(reset_database):
     from routers.users import authenticate_user
-    from tests.support import client, TestingSessionLocal
+    from tests.support import TestingSessionLocal, client
 
     response = client.post(
         "/users",
@@ -202,7 +202,7 @@ def test_authenticate_user_returns_user_for_valid_credentials(reset_database):
 
 def test_authenticate_user_returns_none_for_wrong_password(reset_database):
     from routers.users import authenticate_user
-    from tests.support import client, TestingSessionLocal
+    from tests.support import TestingSessionLocal, client
 
     response = client.post(
         "/users",
@@ -241,6 +241,7 @@ def test_token_response_accepts_access_token_and_type():
 
 def test_login_returns_access_token_for_valid_credentials(reset_database, monkeypatch):
     import jwt
+
     from tests.support import client
 
     test_secret_key = "A" * 32
@@ -423,8 +424,10 @@ def test_read_current_user_returns_401_when_token_user_does_not_exist(
 
 
 def test_read_current_user_returns_401_for_expired_token(monkeypatch):
-    import jwt
     from datetime import datetime, timedelta, timezone
+
+    import jwt
+
     from tests.support import client
 
     test_secret_key = "A" * 32

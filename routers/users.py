@@ -1,20 +1,21 @@
 import logging
+
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jwt.exceptions import InvalidTokenError
+from psycopg.errors import UniqueViolation
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
+
 from database import get_db
-from schemas import UserCreate, UserResponse, UserLogin, TokenResponse
+from models import UserDB
+from schemas import TokenResponse, UserCreate, UserLogin, UserResponse
 from security import (
-    hash_password,
-    verify_password,
     create_access_token,
     decode_access_token,
+    hash_password,
+    verify_password,
 )
-from models import UserDB
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from psycopg.errors import UniqueViolation
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from jwt.exceptions import InvalidTokenError
-
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -60,7 +61,7 @@ def get_current_user(
 
 
 @router.post("/users", status_code=201, response_model=UserResponse)
-def create_user(user: UserCreate, db: Session = Depends(get_db)):
+def create_user(user: UserCreate, db: Session = Depends(get_db)) -> UserDB:
     try:
         hashed_password = hash_password(user.password)
 
@@ -94,7 +95,7 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(login_data: UserLogin, db: Session = Depends(get_db)):
+def login(login_data: UserLogin, db: Session = Depends(get_db)) -> TokenResponse:
     authenticated_user = authenticate_user(
         email=str(login_data.email),
         password=login_data.password,
@@ -114,5 +115,5 @@ def login(login_data: UserLogin, db: Session = Depends(get_db)):
 
 
 @router.get("/users/me", response_model=UserResponse)
-def read_current_user(current_user: UserDB = Depends(get_current_user)):
+def read_current_user(current_user: UserDB = Depends(get_current_user)) -> UserDB:
     return current_user

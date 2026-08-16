@@ -1,0 +1,7 @@
+extend-exclude = ["alembic/versions"]
+
+[lint]
+ignore = ["B008"]
+
+[lint.per-file-ignores]
+"alembic/env.py" = ["F401"]

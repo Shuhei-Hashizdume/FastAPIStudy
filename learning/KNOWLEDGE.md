@@ -16,6 +16,22 @@
 - 内容：基本文法、変数、データ型、条件分岐、ループ、関数、リスト、辞書、例外処理、クラス、インスタンス、オブジェクト指向の基礎
 - 今後の確認：API実装やテストで自力使用できるか継続確認する
 
+## lint・format・型チェック
+
+- 状態：基礎学習完了・経過観察
+- Ruffのlintは未使用import・import順・疑わしい書き方、formatは改行・空白などの見た目、mypyは型の整合性、pytestは実行結果を確認すると区別できた
+- `ruff.toml`でFastAPIの`Depends()`に対するB008、Alembicの副作用importに対するF401、マイグレーション履歴の除外を明示した
+- `--select`は検査ルールの限定、`--statistics`は種類別件数、`--fix`は対象ファイルの自動修正、`format --check`は書き換えなしの整形確認と理解した
+- mypyの基本検査、`--check-untyped-defs`、`--strict`を段階的に適用し、`mypy.ini`へPython 3.14・strict・検査対象を記録した
+- SQLAlchemy 2.0.51で旧`Column()`記法が互換性により動いていたことを確認し、`DeclarativeBase`・`Mapped`・`mapped_column()`へ移行した
+- `Mapped[T]`はインスタンスから得るPython値の型、`mapped_column()`はDBカラムの型・制約、`relationship()`は関連オブジェクトとの対応を担当する
+- `publisher_id`の`nullable=True`を`Mapped[int | None]`、`publisher`を`PublisherDB | None`、`books`を`list[BookDB]`として型に反映した
+- `BookDB.version + 1`は計算済み整数ではなくPostgreSQLへ送るSQL式であり、`update_values`には文字列とSQL式が混在すると説明できた
+- `get_db()`の`Generator[Session, None, None]`は、yieldするSession、外部から送らない値、終了時にreturnしないことを表す
+- `response_model`はFastAPIがクライアント向けレスポンスへ変換する型で、エンドポイント関数の戻り値型は実際に返す`BookDB`・`UserDB`などを書く
+- 動作確認済み：Ruff lint、Ruff format、mypy strict、pytest全件、`alembic check`が成功
+- 今後の確認：別機能で型を自力設計し、必要な場所だけ`Any`を使えるか確認する
+
 ## FastAPI基礎
 
 - 状態：基礎学習済み
