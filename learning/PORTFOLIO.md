@@ -71,13 +71,15 @@ FastAPI、Pydantic、SQLAlchemy、SQLite、PostgreSQLを使い、Web APIとデ�
 - Issue #1を調査・変更・確認へ分解し、専用ブランチ、コミット、PR #2、マージ、ブランチ整理までGitHub上に開発過程を残した
 - GitHubリポジトリ `Shuhei-Hashizdume/FastAPIStudy` へ接続し、開発履歴の記録を開始済み
 - Issue #1、専用ブランチ、PR #2によるREADME更新と、pytest・Ruff・mypyの確認履歴
+- PR #3でレビュー指摘の意図整理、文書修正、差分確認、追加コミット、返信、マージまでの対応履歴を残した
+- FastAPI・Pydantic公式ドキュメントから、使用バージョンと安定版を照合して設定の根拠を確認した
 
 ### 次の改善
 
-1. Pull Requestのレビュー指摘を理解し、修正・再確認・追加コミット・返信まで経験する
+1. DockerfileとDocker ComposeでFastAPI・PostgreSQLの実行環境を再現する
 2. CRUD・認証・認可を別の要件から自力実装できるか確認する
 3. READMEに認証・認可、CORS、設計理由、トレードオフを追加する
-4. Dockerと本番向け秘密情報管理へ進む
+4. CIと本番向け秘密情報管理へ進む
 
 ### 基礎練習プロジェクトの完了条件
 
