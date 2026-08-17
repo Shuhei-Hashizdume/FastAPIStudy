@@ -30,7 +30,6 @@ FastAPI、Pydantic、SQLAlchemy、SQLite、PostgreSQLを使い、Web APIとデ�
 - 明示した許可オリジンだけへ応答するCORS設定と正常系・異常系テスト
 - `.env`のGit除外と、必要な環境変数を安全に共有する`.env.example`
 - Ruffによるlint・format、mypy strict、SQLAlchemy 2系の型付きモデルと共有設定
-- Issue #1、専用ブランチ、PR #2によるREADME更新と、pytest・Ruff・mypyの確認履歴
 
 更新・削除を含め、コードが存在するだけでは学習完了や成果物完成とは判定しない。
 
@@ -71,6 +70,7 @@ FastAPI、Pydantic、SQLAlchemy、SQLite、PostgreSQLを使い、Web APIとデ�
 - READMEのテスト用DB説明を実装と一致させ、`TEST_DATABASE_URL`付きpytest、Ruff、mypyの実行手順を追加した
 - Issue #1を調査・変更・確認へ分解し、専用ブランチ、コミット、PR #2、マージ、ブランチ整理までGitHub上に開発過程を残した
 - GitHubリポジトリ `Shuhei-Hashizdume/FastAPIStudy` へ接続し、開発履歴の記録を開始済み
+- Issue #1、専用ブランチ、PR #2によるREADME更新と、pytest・Ruff・mypyの確認履歴
 
 ### 次の改善
 
