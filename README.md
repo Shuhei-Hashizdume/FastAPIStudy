@@ -1,6 +1,6 @@
 # FastAPIStudy
 
-Pythonバックエンドエンジニアとしての就職と、ジュニアエンジニアとして実務へ参加できる状態を目指す学習リポジトリです。現在はPython、FastAPI、SQLAlchemy、PostgreSQLを使った書籍管理APIで学習しています。pytestでは高速で独立したテストのためインメモリSQLiteを使用しています。
+Pythonバックエンドエンジニアとしての就職と、ジュニアエンジニアとして実務へ参加できる状態を目指す学習リポジトリです。現在はPython、FastAPI、SQLAlchemy、PostgreSQLを使った書籍管理APIで学習しています。pytestでは開発用のDBと分離して、テスト用のPostgreSQLを使用しています。
 
 ## 現在地
 
@@ -120,23 +120,58 @@ http://127.0.0.1:8000/docs
 
 ## テスト
 
-pytestでAPIテストを実行します。
-
 ```bash
-./venv/bin/python -m pytest -v
+TEST_DATABASE_URL="postgresql+psycopg://<PostgreSQLユーザー名>@localhost:5432/fastapi_study_test" ./venv/bin/python -m pytest -v
 ```
 
-テストでは開発用PostgreSQLや`book.db`ではなく、テスト用のインメモリSQLiteを使用します。SQLiteとPostgreSQLの差を確認する統合テストは今後追加予定です。
+処理の流れは次のとおりです。
+
+```text
+シェル
+├─ TEST_DATABASE_URLへ接続情報を一時的に設定
+└─ pytestを起動
+↓
+tests/support.py
+└─ TEST_DATABASE_URLを読み取る
+↓
+テスト専用PostgreSQLへ接続
+```
+
+`<PostgreSQLユーザー名>`は、利用者自身のPostgreSQLユーザー名へ置き換えてください。
+
+テストは`fastapi_study_test`というテスト専用PostgreSQLを使用しています。
+テスト専用PostgreSQLを使用する場合は、環境変数`TEST_DATABASE_URL`でテスト用DBの接続情報を渡す流れになります。
+テスト用と開発用と分けている為、開発用の`fastapi_study`には接続しません。
+
+## 品質チェック
+
+### RuffによるLint（コード上の問題や規約違反の検査）
+
+```bash
+./venv/bin/python -m ruff check .
+```
+
+### Ruffによるフォーマット確認
+
+```bash
+./venv/bin/python -m ruff format --check .
+```
+
+### mypyによる型チェック
+
+```bash
+./venv/bin/python -m mypy
+```
 
 ## API一覧
 
-| HTTPメソッド | パス               | 処理                                 | 主なステータスコード |
-| ------------ | ------------------ | ------------------------------------ | -------------------- |
-| POST         | `/books`           | 書籍を登録                           | 201、422             |
-| GET          | `/books`           | 書籍一覧取得、著者絞り込み、ページネーション | 200、422        |
-| GET          | `/books/{book_id}` | IDを指定して書籍を1件取得            | 200、404             |
-| PATCH        | `/books/{book_id}` | IDを指定して書籍を部分更新           | 200、404、422        |
-| DELETE       | `/books/{book_id}` | IDを指定して書籍を削除               | 204、404             |
+| HTTPメソッド | パス               | 処理                                         | 主なステータスコード |
+| ------------ | ------------------ | -------------------------------------------- | -------------------- |
+| POST         | `/books`           | 書籍を登録                                   | 201、422             |
+| GET          | `/books`           | 書籍一覧取得、著者絞り込み、ページネーション | 200、422             |
+| GET          | `/books/{book_id}` | IDを指定して書籍を1件取得                    | 200、404             |
+| PATCH        | `/books/{book_id}` | IDを指定して書籍を部分更新                   | 200、404、422        |
+| DELETE       | `/books/{book_id}` | IDを指定して書籍を削除                       | 204、404             |
 
 ### `{book_id}`の意味
 
@@ -161,14 +196,14 @@ GET /books?offset=0&limit=20
 FastAPI、SQLAlchemy、PostgreSQLを使用した書籍管理APIです。書籍の登録、取得、部分更新、削除に対応して
 います。
 
-| ファイル              | 役割                                                      |
-| --------------------- | --------------------------------------------------------- |
-| `main.py`             | FastAPIアプリの作成、書籍用Routerの登録                    |
-| `database.py`         | 環境変数によるSQLite・PostgreSQL接続設定とSession管理      |
-| `models.py`           | SQLAlchemyによるDBモデルの定義                            |
-| `schemas.py`          | Pydanticによるリクエスト・レスポンススキーマの定義        |
-| `routers/books.py`    | 書籍APIのエンドポイント                                   |
-| `tests/test_books.py` | 書籍APIの正常系・異常系テスト                             |
-| `alembic/`            | DB構造の変更履歴とマイグレーション実行設定                 |
-| `alembic.ini`         | Alembic全体の設定                                          |
-| `requirements.txt`    | 必要なPythonパッケージとバージョン                        |
+| ファイル              | 役割                                                  |
+| --------------------- | ----------------------------------------------------- |
+| `main.py`             | FastAPIアプリの作成、書籍用Routerの登録               |
+| `database.py`         | 環境変数によるSQLite・PostgreSQL接続設定とSession管理 |
+| `models.py`           | SQLAlchemyによるDBモデルの定義                        |
+| `schemas.py`          | Pydanticによるリクエスト・レスポンススキーマの定義    |
+| `routers/books.py`    | 書籍APIのエンドポイント                               |
+| `tests/test_books.py` | 書籍APIの正常系・異常系テスト                         |
+| `alembic/`            | DB構造の変更履歴とマイグレーション実行設定            |
+| `alembic.ini`         | Alembic全体の設定                                     |
+| `requirements.txt`    | 必要なPythonパッケージとバージョン                    |
