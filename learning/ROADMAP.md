@@ -23,7 +23,7 @@
 - [x] ブランチ作成、Pull Request、Merge、`pull`
 - [x] `.gitignore` とREADMEの基礎
 - [ ] 小さな単位でコミットを分ける
-- [ ] Pull Requestで目的、変更、確認方法を説明する
+- [x] Pull Requestで目的、変更、確認方法を説明する
 - [ ] コンフリクト解消とレビュー修正の流れ
 
 ## Phase 3：FastAPIとSQLiteによるAPI基礎
@@ -112,7 +112,7 @@
 - [x] fixture、モック、テストデータ管理
 - [x] lint・format・型チェック
 - [x] ログとスタックトレースで不具合を調査する
-- [ ] Issueからタスク分解し、ブランチとPull Requestで進める
+- [x] Issueからタスク分解し、ブランチとPull Requestで進める
 - [ ] レビュー指摘を理解し修正する
 - [ ] 公式ドキュメントから必要な情報を探す
 

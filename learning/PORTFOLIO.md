@@ -30,6 +30,7 @@ FastAPI、Pydantic、SQLAlchemy、SQLite、PostgreSQLを使い、Web APIとデ�
 - 明示した許可オリジンだけへ応答するCORS設定と正常系・異常系テスト
 - `.env`のGit除外と、必要な環境変数を安全に共有する`.env.example`
 - Ruffによるlint・format、mypy strict、SQLAlchemy 2系の型付きモデルと共有設定
+- Issue #1、専用ブランチ、PR #2によるREADME更新と、pytest・Ruff・mypyの確認履歴
 
 更新・削除を含め、コードが存在するだけでは学習完了や成果物完成とは判定しない。
 
@@ -67,13 +68,15 @@ FastAPI、Pydantic、SQLAlchemy、SQLite、PostgreSQLを使い、Web APIとデ�
 - JWT秘密鍵、開発DB、テストDBに必要な環境変数名を、本物の値を含めず`.env.example`で共有済み
 - `requirements.txt` とREADMEにより、環境構築、DBマイグレーション、起動、テスト、API仕様を他の人が確認できる
 - `ruff.toml`と`mypy.ini`で検査条件を共有し、Ruff・mypy strict・pytest・`alembic check`をすべて成功させた
+- READMEのテスト用DB説明を実装と一致させ、`TEST_DATABASE_URL`付きpytest、Ruff、mypyの実行手順を追加した
+- Issue #1を調査・変更・確認へ分解し、専用ブランチ、コミット、PR #2、マージ、ブランチ整理までGitHub上に開発過程を残した
 - GitHubリポジトリ `Shuhei-Hashizdume/FastAPIStudy` へ接続し、開発履歴の記録を開始済み
 
 ### 次の改善
 
-1. Issueからタスクを分解し、専用ブランチとPull Requestで変更・確認方法を説明する
+1. Pull Requestのレビュー指摘を理解し、修正・再確認・追加コミット・返信まで経験する
 2. CRUD・認証・認可を別の要件から自力実装できるか確認する
-3. READMEに認証・認可、CORS、環境変数、品質チェック、設計理由、トレードオフを追加する
+3. READMEに認証・認可、CORS、設計理由、トレードオフを追加する
 4. Dockerと本番向け秘密情報管理へ進む
 
 ### 基礎練習プロジェクトの完了条件
