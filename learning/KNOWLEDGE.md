@@ -358,3 +358,22 @@
 - Pydantic 2.13.4と公式`latest`の対象を照合し、`from_attributes=True`がオブジェクトの同名属性から値を読む設定だと確認した
 - 公式の一般仕様と現在のコードへの結論を分け、`BookDB`インスタンスを`BookResponse`へ渡す現在の設定は適切と判断した
 - 今後の確認：別の未知機能を公式ドキュメント、Changelog、Migration Guideから自力調査する
+
+## DockerfileとDocker ComposeによるAPI・PostgreSQL運用
+
+- 状態：基礎学習完了・経過観察
+- DockerfileはAPIイメージの作成手順、Dockerイメージはコンテナのひな型、コンテナは実際にプロセスが動く実体である
+- `RUN`はイメージ作成中、`CMD`はコンテナ起動時に実行される
+- `build: .`は現在のプロジェクトディレクトリをビルド対象とし、その中のDockerfileからAPIイメージを作る
+- Composeは`api`と`db`を別サービスとして管理し、サービス名`db`を内部ネットワーク上の接続先として使う
+- `ports: "8000:8000"`はMac側8000番をAPIコンテナ側8000番へ転送する
+- PostgreSQLコンテナはDBプロセスを動かし、`postgres_data` volumeはコンテナ削除後もDBデータを保持する
+- `pg_isready`のhealthcheckが成功して`healthy`になった後、`depends_on`によりAPIを起動する
+- Composeの`command`はDockerfileの`CMD`を上書きするため、Alembicに続けてUvicornを起動する命令も再記述する
+- `alembic upgrade head && uvicorn ...`により、DB構造の最新化に成功した場合だけAPIを起動する
+- `.env.example`は必要な環境変数名と安全な見本を共有し、各開発者は`.env`へコピーして実際のローカル用の値を設定する
+- Composeは`POSTGRES_USER`、`POSTGRES_PASSWORD`、`POSTGRES_DB`から1本の`DATABASE_URL`を組み立て、APIコンテナへ渡す
+- `docker compose ps`の`Up`はメインプロセスが動作中、`healthy`はhealthcheckにも成功した状態を表す
+- Swagger UI表示はHTTP経路、ユーザー登録・ログインはAPIからPostgreSQLへの接続、再作成後のログインはvolumeによる永続化の確認になる
+- ログの`KeyError: 'JWT_SECRET_KEY'`から、`.env`の値を`api.environment`でコンテナへ渡していない問題を特定した
+- 今後の確認：別のAPI・DB構成でDockerfile、Compose、volume、healthcheck、環境変数を自力設計する

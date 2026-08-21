@@ -118,12 +118,12 @@
 
 ## Phase 8：Docker・デプロイ・運用基礎
 
-- [ ] Dockerfileを作成してAPIを起動する
-- [ ] Docker ComposeでAPIとPostgreSQLを起動する
-- [ ] 環境変数と秘密情報を管理する
+- [x] Dockerfileを作成してAPIを起動する
+- [x] Docker ComposeでAPIとPostgreSQLを起動する
+- [x] 環境変数と秘密情報を管理する
 - [ ] CIでテストを自動実行する
 - [ ] クラウド等へデプロイする
-- [ ] ヘルスチェック、ログ、障害時の切り分けを行う
+- [x] ヘルスチェック、ログ、障害時の切り分けを行う
 
 ## Phase 9：就職用ポートフォリオ
 

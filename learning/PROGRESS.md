@@ -4,11 +4,24 @@
 
 - 現在のフェーズ：Docker・デプロイ・運用基礎
 - 現在のプロジェクト：書籍管理API
-- 今回の終了地点：PR #3でレビュー指摘の理解・修正・確認・追加コミット・返信・マージを行い、FastAPIとPydanticの公式ドキュメントをバージョン確認付きで調査した
-- 現在の学習状態：テスト・品質・チーム開発の基礎項目を一通り経験し、Dockerによる実行環境の再現へ進める状態
-- 次回講義：Dockerが解決する問題と、イメージ・コンテナ・Dockerfileの役割
+- 今回の終了地点：DockerfileとDocker ComposeでAPI・PostgreSQLを起動し、Alembic、healthcheck、volume、環境変数、ログ確認、README手順まで実装・確認した
+- 現在の学習状態：書籍管理APIをDockerで再現可能にし、API・DB間通信、DB構造の自動更新、データ永続化、JWT秘密鍵不足の500調査まで一連の運用を経験した
+- 次回講義：CIが解決する問題と、GitHub上でpytest・Ruff・mypyを自動実行する基礎
 
 ## 今回完了した項目
+
+- `python:3.14-slim`を土台に、依存関係とアプリコードをコピーしてUvicornを起動するDockerfileを作成した
+- `.dockerignore`で仮想環境、Git、`.env`、キャッシュ、ローカルSQLiteをビルド対象から除外した
+- Dockerイメージをビルドし、ポート`8000:8000`でコンテナを起動してSwagger UIを表示した
+- `compose.yaml`へ`api`と`db`サービス、PostgreSQL 17、内部ネットワーク、`postgres_data` volumeを定義した
+- `pg_isready`によるhealthcheckと`depends_on.condition: service_healthy`で、PostgreSQL接続可能後にAPIを起動した
+- APIコンテナの起動時に`alembic upgrade head`を実行し、成功時だけ`&&`でUvicornへ進む構成を追加した
+- Dockerfileの`CMD`がComposeの`command`で上書きされるため、Uvicorn起動命令を`command`にも含める必要を説明した
+- `.env`の`POSTGRES_USER`、`POSTGRES_PASSWORD`、`POSTGRES_DB`からAPI用`DATABASE_URL`を組み立て、`JWT_SECRET_KEY`もAPIコンテナへ渡した
+- `.env.example`へComposeに必要な環境変数名と安全な見本値を追加し、READMEへコピー、値変更、起動、状態確認、Swagger UI、停止手順を記載した
+- API・DBコンテナ削除後も同じvolumeを接続し、登録済みユーザーでログイン200となることからデータ永続化を確認した
+- ログの`KeyError: 'JWT_SECRET_KEY'`からログイン500の原因を特定し、環境変数追加後に200へ修正した
+- pytest 99件、Ruff lint、Ruff format 25ファイル、mypy 8ファイル、Compose構文検証をすべて成功させた
 
 - PR #3のレビュー指摘について、記載場所の責務が不適切という意図を自分の言葉で整理した
 - 同じ作業ブランチで`PORTFOLIO.md`の記載を移動し、重複・移動先・`git diff --check`を確認した
@@ -88,7 +101,8 @@
 - ISBNのチェックディジットを含む厳密な妥当性検証
 - 認可を別要件から自力で設計・実装する確認
 - レート制限の実装と、本番環境での秘密情報管理サービスの利用
-- Docker
+- CIによるpytest・Ruff・mypyの自動実行
+- クラウド等へのデプロイ
 
 ## 現在の強み
 
@@ -126,6 +140,11 @@
 - push、Pull Request、mergeの役割を、共有・レビュー依頼・`main`への統合として区別できる
 - PR本文に変更理由・変更内容・確認結果を書き、`Closes #1`でIssueと関連付けられる
 - マージ後にローカル`main`を更新し、ローカル・リモートの作業ブランチを安全に削除できる
+- Dockerfile、Dockerイメージ、コンテナの役割と`RUN`・`CMD`の実行時点を区別できる
+- Composeのサービス名とDocker上の自動生成名、内部ネットワーク、ポート公開を区別できる
+- PostgreSQLコンテナとvolumeの役割を分け、通常の`down`ではデータが残ることを説明できる
+- `Up`と`healthy`を分け、ログと実際のAPI操作でHTTP・DB接続を段階的に確認できる
+- Alembicが失敗した場合にUvicornを起動しない理由を、APIコードとDB構造の不一致から説明できる
 - レビュー指摘を修正前に自分の言葉で整理し、同じブランチへの追加コミット・push・返信で既存PRを更新できる
 - Pythonコードを変更していない文書修正では、pytestを実行しない理由と代わりに必要な差分確認を説明できる
 - 公式ドメインだけでなく、使用中のライブラリとドキュメントの対象バージョンを照合できる
@@ -148,21 +167,22 @@
 - fixtureの実行順、`yield`前後の準備・後片付け、共有TestClientの状態管理
 - 位置引数とキーワード引数、およびモック関数のシグネチャの対応
 - 認可の403と、認証失敗の401の停止地点の違い
+- Dockerfileの`CMD`とComposeの`command`の上書き関係を、別構成でも自力で判断する
+- `.env.example`、Composeが読む`.env`、APIコンテナ内の環境変数の受け渡しを別設定でも説明する
 
 ## 次回の完了条件
 
-- Dockerが解決する環境差の問題を説明する
-- イメージとコンテナの役割を区別する
-- Dockerfileが何を定義するファイルか説明する
-- 書籍管理API用の最小Dockerfileを段階的に作成する
-- イメージをビルドし、コンテナでFastAPIを起動して確認する
+- CIが手元の確認忘れや環境差による問題をどう減らすか説明する
+- GitHub上でpytest・Ruff・mypyを実行する流れを説明する
+- CI設定を小さく作成し、成功・失敗結果を確認する
+- 失敗したチェックのログから原因箇所を特定する
 
 ## 次回開始時の講師への指示
 
 次の3点を報告してから、目的と必要な理由を先に説明し、新しい用語を1つずつ扱う。
 
-- 前回の終了地点：PR #3のレビュー対応と、FastAPI・Pydantic公式ドキュメントのバージョン確認付き調査を完了
-- 今回の講義：Dockerが解決する問題と、イメージ・コンテナ・Dockerfileの役割
+- 前回の終了地点：DockerfileとDocker ComposeでAPI・PostgreSQLを起動し、Alembic自動適用、healthcheck、volume、環境変数、ログ調査、README整備まで完了
+- 今回の講義：CIが解決する問題と、GitHub上でpytest・Ruff・mypyを自動実行する基礎
 - 現在のプロジェクト：書籍管理API
 
-最初に、現在はMacへPython・venv・PostgreSQLを個別導入している状態を示し、別PCで環境差が起きる問題を説明する。その後、イメージを実行環境のひな型、コンテナをイメージから作られた実行中の環境として区別し、Dockerfileへ進む。
+最初に、手元の品質確認だけでは実行忘れや環境差を防げない問題を説明する。その後、CIの位置、実行契機、環境、各チェックの担当を1つずつ説明し、完成した設定を先に渡さず小さく作成する。
