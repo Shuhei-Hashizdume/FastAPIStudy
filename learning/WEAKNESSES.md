@@ -17,6 +17,8 @@
 - fixtureの`yield`前後、`pytestmark.usefixtures()`、テスト関数の引数でfixtureの値を受け取る場合の違いを説明する
 - 位置引数とキーワード引数の違い、およびモック関数が元の関数と同じ呼び出し方を受け取る必要性を説明する
 - 認証失敗の401と、認証済みだが権限がない403の違いを処理順付きで説明する
+- Dockerfileの`CMD`とComposeの`command`の上書き関係を、別の起動構成でも自力で判断する
+- `.env.example`、Composeが読む`.env`、APIコンテナへ渡された環境変数を区別する
 
 ## 学習中
 
@@ -28,7 +30,7 @@
 
 ## 今後学習
 
-- Docker、CI、デプロイ
+- CI、デプロイ、本番環境の秘密情報管理
 
 ## 経過観察
 
@@ -36,6 +38,8 @@
 - Issueを調査・変更・確認の小さなタスクへヒントなしで分解する
 - ブランチ、コミット、push、Pull Request、mergeの役割を別の作業でも区別して説明する
 - PR本文へ変更理由・変更内容・確認結果を書き、マージ後のローカル・リモートブランチを自力で整理する
+- Dockerfileからイメージを作り、ComposeでAPI・PostgreSQL・volume・ネットワークを別要件でも構成する
+- `Up`、`healthy`、ログ、HTTPレスポンス、DB操作を使い、コンテナ障害を段階的に切り分ける
 - Ruffの指摘を機械的に直さず、一般的なルールとFastAPI・Alembic固有の例外を区別する
 - Ruff、mypy、pytestの担当を、書き方・型・実行結果として区別する
 - `Mapped`・`mapped_column()`・型付き`relationship()`を別モデルでも自力で設計する

@@ -30,6 +30,7 @@ FastAPI、Pydantic、SQLAlchemy、SQLite、PostgreSQLを使い、Web APIとデ�
 - 明示した許可オリジンだけへ応答するCORS設定と正常系・異常系テスト
 - `.env`のGit除外と、必要な環境変数を安全に共有する`.env.example`
 - Ruffによるlint・format、mypy strict、SQLAlchemy 2系の型付きモデルと共有設定
+- DockerfileとDocker ComposeによるAPI・PostgreSQLの分離起動、volume、healthcheck、Alembic自動適用
 
 更新・削除を含め、コードが存在するだけでは学習完了や成果物完成とは判定しない。
 
@@ -71,13 +72,15 @@ FastAPI、Pydantic、SQLAlchemy、SQLite、PostgreSQLを使い、Web APIとデ�
 - Issue #1を調査・変更・確認へ分解し、専用ブランチ、コミット、PR #2、マージ、ブランチ整理までGitHub上に開発過程を残した
 - GitHubリポジトリ `Shuhei-Hashizdume/FastAPIStudy` へ接続し、開発履歴の記録を開始済み
 - Issue #1、専用ブランチ、PR #2によるREADME更新と、pytest・Ruff・mypyの確認履歴
+- Docker ComposeでAPI・PostgreSQLを起動し、Swagger UI、DB登録・ログイン、コンテナ再作成後のデータ永続化を確認済み
+- `.env.example`とREADMEで、Docker用環境変数、秘密鍵生成、起動、状態確認、停止手順を共有済み
 
 ### 次の改善
 
 1. Pull Requestのレビュー指摘を理解し、修正・再確認・追加コミット・返信まで経験する
 2. CRUD・認証・認可を別の要件から自力実装できるか確認する
 3. READMEに認証・認可、CORS、設計理由、トレードオフを追加する
-4. Dockerと本番向け秘密情報管理へ進む
+4. CIでpytest・Ruff・mypyを自動実行し、その後デプロイと本番向け秘密情報管理へ進む
 
 ### 基礎練習プロジェクトの完了条件
 

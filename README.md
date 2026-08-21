@@ -79,6 +79,57 @@ export DATABASE_URL="postgresql+psycopg://DBユーザー名@localhost:5432/fasta
 
 認証情報や秘密鍵などの機密情報は、コードやREADMEへ直接記載しないでください。
 
+## Docker Composeの起動方法
+
+このアプリではAPIコンテナとPostgreSQLコンテナを一緒に使用します。
+
+また.env.exampleをコピーして、自分のPCに.envを作成します。
+
+```bash
+cp .env.example .env
+```
+
+作成後は、.envの見本値を、実際に使用するローカル用の値へ変更します。
+
+Docker ComposeがPostgreSQLの設定に使用する、次の3つの見本値もローカル用の値へ変更します。
+
+- POSTGRES_USER：ローカル用のDBユーザー名
+- POSTGRES_PASSWORD：そのユーザーのローカル用パスワード
+- POSTGRES_DB：作成するローカル用データベース名
+
+JWT_SECRET_KEYは安全なランダム値へ変更します。
+ターミナルで以下のコマンドを実行して、表示された値を.envのJWT_SECRET_KEYへ設定します。
+
+```bash
+openssl rand -hex 32
+```
+
+起動方法
+
+```bash
+docker compose up -d
+```
+
+APIとPostgreSQLの起動状態を確認します。
+確認結果から`api`が`Up`、`db`も`Up(healthy)`になっていることを確認します。
+
+```bash
+docker compose ps
+```
+
+Swagger UIを以下のURLより、開いてください。
+
+```txt
+http://localhost:8000/docs
+```
+
+APIとPostgreSQLを停止する方法は以下のコマンドを実行します。
+コマンドの中で`-v`はつけないので、volumeは残ります。
+
+```bash
+docker compose down
+```
+
 ## DBマイグレーション
 
 DB構造の作成・変更履歴はAlembicで管理します。FastAPIの起動時には

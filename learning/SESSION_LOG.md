@@ -620,3 +620,60 @@ Issue・ブランチ・コミット・Pull Requestが開発工程のどこを担
 ### 次回開始地点
 
 Pull Requestのレビューが要件・安全性・保守性をチームで確認する工程であることを復習する。その後、小さなレビュー指摘を題材に、指摘内容の整理、修正、対象確認、追加コミット、レビュー返信を1ステップずつ行う。
+
+## 2026-08-21：Dockerfile・Docker ComposeによるAPIとPostgreSQLの実行環境
+
+### 実施内容
+
+- `python:3.14-slim`を土台に、依存関係とアプリコードをコピーしてUvicornを起動するDockerfileを作成した
+- `.dockerignore`で仮想環境、Git、`.env`、キャッシュ、ローカルSQLiteをビルド対象から除外した
+- DockerイメージからAPIコンテナを起動し、`8000:8000`のポート転送でSwagger UIを表示した
+- `compose.yaml`へAPI・PostgreSQL 17のサービス、環境変数、内部ネットワーク、`postgres_data` volumeを定義した
+- `pg_isready`によるhealthcheckと`depends_on`で、PostgreSQLが`healthy`になった後にAPIを起動した
+- 一時APIコンテナからAlembicを`head`まで適用し、Composeの`command`へAlembic成功後のUvicorn起動を組み込んだ
+- `.env`のPostgreSQL設定からAPI用`DATABASE_URL`を作り、`JWT_SECRET_KEY`をAPIコンテナへ渡した
+- API・DBコンテナとネットワークを削除・再作成し、同じvolumeの登録済みユーザーでログインできることを確認した
+- ログイン500のログから`KeyError: 'JWT_SECRET_KEY'`を特定し、環境変数の受け渡しを修正した
+- `.env.example`とREADMEへ、見本のコピー、ローカル値、秘密鍵生成、起動、状態確認、Swagger UI、停止手順を追加した
+
+### 理解確認できた内容
+
+- Dockerfileはイメージの作り方、イメージはひな型、コンテナは動作中の実体である
+- `RUN`はビルド時、`CMD`はコンテナ起動時に実行される
+- Composeの`command`はDockerfileの`CMD`を上書きするため、Uvicorn起動も`command`へ含める必要がある
+- Composeはプロジェクト名とサービス名・volume名からDocker上の名前を自動生成する
+- Composeの内部ネットワークはAPIとDBの内部通信に使い、作成しただけでインターネットへ公開されるわけではない
+- PostgreSQLコンテナとvolumeは別の役割で、通常の`docker compose down`ではvolumeとDBデータが残る
+- `Up`はプロセス動作中、`healthy`はhealthcheck成功を表し、HTTPとDB接続はSwagger UI・API操作で別に確認する
+- Alembicが失敗した状態でUvicornを起動すると、APIコードが期待するテーブル・カラム・制約と実DBが一致せず500の原因になる
+- `.env.example`は見本の共有、`.env`は各開発者の実値、`api.environment`はコンテナへ渡す値を担当する
+
+### 動作確認
+
+- Dockerイメージのビルド：成功
+- API・PostgreSQLのCompose起動：成功
+- PostgreSQL healthcheck：`healthy`
+- Alembic `8972e235fa78 (head)`：確認
+- Swagger UI：表示成功
+- ユーザー登録：201
+- コンテナ再作成後のログイン：200、`token_type: bearer`
+- pytest：99件成功、7.34秒
+- Ruff lint：`All checks passed!`
+- Ruff format：25ファイル整形済み
+- mypy：8ファイル、問題なし
+- `docker compose config --quiet`：成功
+- `git diff --check`：問題なし
+
+### 完了判定
+
+- 完了：DockerfileからAPIイメージを作り、コンテナでFastAPIを起動する
+- 完了：Docker ComposeでAPI・PostgreSQL・volume・内部ネットワークを管理する
+- 完了：PostgreSQLのhealthcheck後にAlembicとUvicornを順番に起動する
+- 完了：ローカル用環境変数と秘密情報を`.env`へ分離し、安全な見本だけ共有する
+- 完了：ログ、状態表示、HTTPレスポンス、DB操作から障害を段階的に切り分ける基礎
+- 経過観察：別要件でDockerfile・Composeを自力設計し、`CMD`上書きやvolume削除の影響を判断する
+- 未完了：CI、クラウドへのデプロイ、本番環境の秘密情報管理
+
+### 次回開始地点
+
+手元でpytest・Ruff・mypyを実行するだけでは、実行忘れや環境差を防げない問題を確認する。その後、CIの役割とGitHub上で品質チェックを自動実行する流れを、設定を小さく作りながら学ぶ。
