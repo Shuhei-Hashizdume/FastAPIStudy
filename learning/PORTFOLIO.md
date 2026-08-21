@@ -74,13 +74,15 @@ FastAPI、Pydantic、SQLAlchemy、SQLite、PostgreSQLを使い、Web APIとデ�
 - Issue #1、専用ブランチ、PR #2によるREADME更新と、pytest・Ruff・mypyの確認履歴
 - Docker ComposeでAPI・PostgreSQLを起動し、Swagger UI、DB登録・ログイン、コンテナ再作成後のデータ永続化を確認済み
 - `.env.example`とREADMEで、Docker用環境変数、秘密鍵生成、起動、状態確認、停止手順を共有済み
+- PR #3でレビュー指摘の意図整理、文書修正、差分確認、追加コミット、返信、マージまでの対応履歴を残した
+- FastAPI・Pydantic公式ドキュメントから、使用バージョンと安定版を照合して設定の根拠を確認した
 
 ### 次の改善
 
-1. Pull Requestのレビュー指摘を理解し、修正・再確認・追加コミット・返信まで経験する
+1. CIでpytest・Ruff・mypyを自動実行する
 2. CRUD・認証・認可を別の要件から自力実装できるか確認する
 3. READMEに認証・認可、CORS、設計理由、トレードオフを追加する
-4. CIでpytest・Ruff・mypyを自動実行し、その後デプロイと本番向け秘密情報管理へ進む
+4. デプロイと本番向け秘密情報管理へ進む
 
 ### 基礎練習プロジェクトの完了条件
 

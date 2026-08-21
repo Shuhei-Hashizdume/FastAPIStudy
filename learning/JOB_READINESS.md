@@ -24,6 +24,7 @@
 | ファイル分割・設計 | ヒントありで実装可能 | DB接続、DBモデル、Pydanticスキーマ、Router、アプリ本体へ分割し、責務を説明 |
 | APIテスト・pytest | ヒントありで実装可能 | テスト専用PostgreSQL、`TestClient`、fixture、Dependency Override、モック、SQL回数監視、認証・認可、同時実行、CORSを含む全件テストが成功 |
 | lint・format・型チェック | ヒントありで実装可能 | Ruffの指摘を分類して修正・設定し、mypy strictへ段階的に移行。SQLAlchemy 2系の型付きモデル、関数の引数・戻り値、外部ライブラリ境界の`Any`を実装し、全検査成功を確認 |
+| 公式ドキュメント調査 | ヒントありで実行可能 | FastAPIの`HTTPBearer.auto_error`とPydanticの`from_attributes`を公式情報から調査。Pydantic 2.13.4と`dev`・`latest`・固定版を区別し、翻訳・原文・現在のコードへの適用を整理。別の未知機能で自力再現を今後確認 |
 | 環境構築・設定管理 | 基礎理解 | `venv`、`requirements.txt`、READMEの構築手順、`DATABASE_URL` の環境変数化を実施。OS・プロセス・環境変数の関係は要復習 |
 | PostgreSQL | ヒントありで実装可能 | 接続、Alembic、CRUD、テスト用DB分離、UNIQUE競合、本当の並列実行、REPEATABLE READ、楽観的ロック、所有者外部キーを実装・確認 |
 | Alembic | ヒントありで実装可能 | ベースライン、`stamp`、SQLiteバッチ変更、段階的なISBN追加、upgrade・downgrade、空DB再現を実施。別要件からの自力設計は今後確認 |
@@ -32,13 +33,13 @@
 | Docker | ヒントありで実装可能 | DockerfileとComposeでAPI・PostgreSQLを分離し、volume、healthcheck、Alembic自動適用、環境変数、ログ調査、README手順を実装。別要件からの自力構成は今後確認 |
 | CI/CD・デプロイ | 未学習 | 実践記録なし |
 | ログ・障害調査 | ヒントありで実装可能 | `logger.exception()`、スタックトレース、`IntegrityError`・`SQLAlchemyError`、`caplog`による確認を実施 |
-| PRでの説明・レビュー修正 | ヒントありで実装可能 | PR #2へ変更理由・変更内容・pytest・Ruff・mypyの確認結果と`Closes #1`を記載し、差分確認後にマージ。実際の他者レビュー指摘への修正対応は未確認 |
+| PRでの説明・レビュー修正 | ヒントありで実装可能 | PR #2で変更説明を行い、PR #3ではレビュー指摘の意図整理、同じブランチでの修正、追加コミット、push、確認結果とpytest未実施理由の返信、マージ後の整理まで実施。別のコードレビューでの自力対応は今後確認 |
 
 ## 現在の総合判定
 
 FastAPIとSQLAlchemyのCRUD APIについて、PostgreSQL、Alembic、テスト専用DB、同時実行・楽観的ロック、Argon2、JWT認証、所有者ベース認可、正常系・異常系テストまで進んだ段階。就職応募用の完成ポートフォリオや、ジュニアとして実務参加できる段階にはまだ到達していない。
 
-lint・format・型チェック、IssueからPull Request・マージまでの流れに加え、DockerfileとDocker ComposeでAPI・PostgreSQLを再現可能にする基礎を実践した。次はCIで品質チェックを自動化し、その後デプロイへ段階的につなげる。
+lint・format・型チェック、IssueからPull Request・マージまでの流れ、レビュー指摘への追加コミットと返信、公式ドキュメントのバージョン確認付き調査に加え、DockerfileとDocker ComposeでAPI・PostgreSQLを再現可能にする基礎を実践した。次はCIで品質チェックを自動化し、その後デプロイへ段階的につなげる。
 
 ## 最終評価の考え方
 
