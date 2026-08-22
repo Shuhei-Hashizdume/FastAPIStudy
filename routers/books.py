@@ -25,7 +25,7 @@ def add_book(
     book: BookRequest,
     db: Session = Depends(get_db),
     current_user: UserDB = Depends(get_current_user),
-) -> BookDB:
+):
     try:
         if book.isbn is not None:
             existing_book = find_book_by_isbn(isbn=book.isbn, db=db)
