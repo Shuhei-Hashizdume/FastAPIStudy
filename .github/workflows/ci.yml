@@ -1,0 +1,53 @@
+name: CI
+on: #workflowを開始するtriggerを設定
+  push:
+  pull_request:
+permissions: #workflowへ与えるGitHub上の権限
+  contents: read
+jobs: #workflow内で実行する仕事のまとまり
+  quality: # 今回のjobを識別する名前。任意の名前を付けられる
+    runs-on: ubuntu-latest # GitHubが提供するUbuntu環境を使う指定
+    env:
+      DATABASE_URL: "postgresql+psycopg://postgres:postgres@localhost:5432/fastapi_study_test"
+      TEST_DATABASE_URL: "postgresql+psycopg://postgres:postgres@localhost:5432/fastapi_study_test"
+
+    services: #jobを補助するために一時的に起動するDockerコンテナ
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: fastapi_study_test
+        ports:
+          - 5432:5432
+        options: >- # 複数行を一つの長い設定値として扱うYAML記法
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7 # @v7はpythonのバージョンではない。setup-python Actionのバージョン
+        with:
+          python-version: "3.14"
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt #runner上でシェルコマンドを直接実行する。-rは、指定したファイルに書かれたパッケージをまとめて読み込むためのオプションです。
+
+      - name: Run Ruff lint
+        run: python -m ruff check .
+
+      - name: Check Ruff formatting
+        run: python -m ruff format --check .
+
+      - name: Run mypy
+        run: python -m mypy
+
+      - name: Apply database migrations
+        run: python -m alembic upgrade head
+
+      - name: Run pytest
+        run: python -m pytest -v
