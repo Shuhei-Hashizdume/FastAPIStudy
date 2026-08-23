@@ -214,6 +214,19 @@ tests/support.py
 ./venv/bin/python -m mypy
 ```
 
+### GitHub ActionsによるCI
+
+開発者がpushした時やPull Requestを作成・更新したとき、GitHub ActionsがCIを実行します。
+GitHub Actionsが以下の処理を自動実行します。
+
+- `Ruff lint`
+- `Ruff format --check`
+- `mypy`
+- `Alembic upgrade head`
+- `pytest`
+
+いずれかのstepが失敗すると`quality` job全体が失敗し、Rulesetが`main`へのマージを禁止します。
+
 ## API一覧
 
 | HTTPメソッド | パス               | 処理                                         | 主なステータスコード |
