@@ -1,0 +1,16 @@
+{
+  "cSpell.words": [
+    "caplog",
+    "fastapi",
+    "isready",
+    "joinedload",
+    "mypy",
+    "psql",
+    "psycopg",
+    "Pydantic",
+    "pytest",
+    "pytestmark",
+    "usefixtures",
+    "Uvicorn"
+  ]
+}
