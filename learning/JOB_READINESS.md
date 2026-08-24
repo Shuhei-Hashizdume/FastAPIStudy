@@ -31,7 +31,7 @@
 | 認証・認可 | ヒントありで実装可能 | Argon2、JWT、Bearer認証、`/users/me`、所有者の保存、PATCH・DELETEの403に加え、個人用サービスとして一覧・1件取得を所有者へ限定し、401・404・空リストを含む正常・異常系テストを実装。別データ要件への応用は今後確認 |
 | セキュリティ | 基礎理解 | パスワードハッシュ、JWT、所有者認可、CORS、秘密情報の分離、BOLA・プロパティ認可・リソース消費・SQLインジェクション・情報漏えいの基礎を実装と既存コードに結び付けて確認。レート制限と本番Secrets管理は今後学習 |
 | Docker | ヒントありで実装可能 | DockerfileとComposeでAPI・PostgreSQLを分離し、volume、healthcheck、Alembic自動適用、環境変数、ログ調査、README手順を実装。別要件からの自力構成は今後確認 |
-| CI/CD・デプロイ | 未学習 | 実践記録なし |
+| CI/CD・デプロイ | 学習中 | GitHub ActionsでRuff・mypy・Alembic・pytestを自動実行し、Rulesetで`quality`をマージ条件に設定。CIは基礎実践済み、デプロイは未学習 |
 | ログ・障害調査 | ヒントありで実装可能 | `logger.exception()`、スタックトレース、`IntegrityError`・`SQLAlchemyError`、`caplog`による確認を実施 |
 | PRでの説明・レビュー修正 | ヒントありで実装可能 | PR #2で変更説明を行い、PR #3ではレビュー指摘の意図整理、同じブランチでの修正、追加コミット、push、確認結果とpytest未実施理由の返信、マージ後の整理まで実施。別のコードレビューでの自力対応は今後確認 |
 
@@ -39,7 +39,7 @@
 
 FastAPIとSQLAlchemyのCRUD APIについて、PostgreSQL、Alembic、テスト専用DB、同時実行・楽観的ロック、Argon2、JWT認証、所有者ベース認可、正常系・異常系テストまで進んだ段階。就職応募用の完成ポートフォリオや、ジュニアとして実務参加できる段階にはまだ到達していない。
 
-lint・format・型チェック、IssueからPull Request・マージまでの流れ、レビュー指摘への追加コミットと返信、公式ドキュメントのバージョン確認付き調査に加え、DockerfileとDocker ComposeでAPI・PostgreSQLを再現可能にする基礎を実践した。次はCIで品質チェックを自動化し、その後デプロイへ段階的につなげる。
+lint・format・型チェック、IssueからPull Request・マージまでの流れ、レビュー指摘への追加コミットと返信、公式ドキュメントのバージョン確認付き調査、Dockerfile・Docker Composeに加え、GitHub ActionsとRulesetで品質確認を必須化する基礎を実践した。次はデプロイと本番環境の基礎へ段階的に進む。
 
 ## 最終評価の考え方
 

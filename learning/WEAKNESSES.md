@@ -30,7 +30,7 @@
 
 ## 今後学習
 
-- CI、デプロイ、本番環境の秘密情報管理
+- デプロイ、本番環境の秘密情報管理
 
 ## 経過観察
 
@@ -101,5 +101,7 @@
 - Ruffによるlint・formatと、mypy strictによる型チェックの基本
 - レビュー指摘を理解し、同じ作業ブランチで修正・確認・追加コミット・push・返信・マージする基本
 - 公式ドキュメントから対象クラスと設定を探し、対応バージョンと現在のコードへの適用可否を確認する基本
+- CIのtrigger、runner、service container、stepsを区別し、Ruff・mypy・Alembic・pytestをGitHub Actionsで自動実行する基本
+- 意図的なmypyエラーでCI失敗とRulesetのマージ禁止を確認し、復元後に再成功させる基本
 - DB例外をモックで再現し、開発者向けログと安全な500レスポンスを分ける基本
 - NOT NULL制約をSQLiteで実際に発生させ、`pytest.raises`で検証する基本
