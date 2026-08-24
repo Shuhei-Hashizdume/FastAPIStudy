@@ -31,6 +31,7 @@ FastAPI、Pydantic、SQLAlchemy、SQLite、PostgreSQLを使い、Web APIとデ�
 - `.env`のGit除外と、必要な環境変数を安全に共有する`.env.example`
 - Ruffによるlint・format、mypy strict、SQLAlchemy 2系の型付きモデルと共有設定
 - DockerfileとDocker ComposeによるAPI・PostgreSQLの分離起動、volume、healthcheck、Alembic自動適用
+- GitHub ActionsによるRuff・mypy・Alembic・pytestの自動実行と、Rulesetによる`quality`必須化
 
 更新・削除を含め、コードが存在するだけでは学習完了や成果物完成とは判定しない。
 
@@ -76,13 +77,13 @@ FastAPI、Pydantic、SQLAlchemy、SQLite、PostgreSQLを使い、Web APIとデ�
 - `.env.example`とREADMEで、Docker用環境変数、秘密鍵生成、起動、状態確認、停止手順を共有済み
 - PR #3でレビュー指摘の意図整理、文書修正、差分確認、追加コミット、返信、マージまでの対応履歴を残した
 - FastAPI・Pydantic公式ドキュメントから、使用バージョンと安定版を照合して設定の根拠を確認した
+- PR #6でCIの正常系・異常系、PR #7でRulesetによるマージ禁止・復旧とREADME整備の履歴を残した
 
 ### 次の改善
 
-1. CIでpytest・Ruff・mypyを自動実行する
-2. CRUD・認証・認可を別の要件から自力実装できるか確認する
-3. READMEに認証・認可、CORS、設計理由、トレードオフを追加する
-4. デプロイと本番向け秘密情報管理へ進む
+1. CRUD・認証・認可を別の要件から自力実装できるか確認する
+2. READMEに認証・認可、CORS、設計理由、トレードオフを追加する
+3. デプロイと本番向け秘密情報管理へ進む
 
 ### 基礎練習プロジェクトの完了条件
 

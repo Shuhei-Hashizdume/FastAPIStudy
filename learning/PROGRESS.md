@@ -4,11 +4,22 @@
 
 - 現在のフェーズ：Docker・デプロイ・運用基礎
 - 現在のプロジェクト：書籍管理API
-- 今回の終了地点：DockerfileとDocker ComposeでAPI・PostgreSQLを起動し、Alembic、healthcheck、volume、環境変数、ログ確認、README手順まで実装・確認した
-- 現在の学習状態：書籍管理APIをDockerで再現可能にし、API・DB間通信、DB構造の自動更新、データ永続化、JWT秘密鍵不足の500調査まで一連の運用を経験した
-- 次回講義：CIが解決する問題と、GitHub上でpytest・Ruff・mypyを自動実行する基礎
+- 今回の終了地点：GitHub ActionsでRuff・mypy・Alembic・pytestを自動実行し、Rulesetで`quality`成功を`main`へのマージ条件にした
+- 現在の学習状態：CIの環境構築、PostgreSQL service container、正常系・異常系、ログ調査、Rulesetによるマージ禁止と復旧をGitHub上で確認済み
+- 次回講義：デプロイが解決する問題と、ローカル・CI・本番環境の違い
 
 ## 今回完了した項目
+
+- `.github/workflows/ci.yml`を作成し、`push`と`pull_request`をtriggerにした
+- GitHub-hostedのUbuntu runnerでcheckout、Python 3.14準備、依存関係導入を順番に実行した
+- PostgreSQL 17のservice container、`5432:5432`、`pg_isready`のhealth check、CI専用DBを定義した
+- `DATABASE_URL`と`TEST_DATABASE_URL`を同じ`fastapi_study_test`へ向け、Alembicが構造を作った後にpytestが利用する流れを確認した
+- Ruff lint、Ruff format `--check`、mypy strict、`alembic upgrade head`、pytestを`quality` jobで自動実行した
+- ローカルpytest 99件成功と、GitHub Actionsの`push`・`pull_request`両triggerでの成功を確認した
+- `add_book()`の戻り値型を一時削除し、mypyの`no-untyped-def`で`quality`が失敗し、復元後に再成功する異常系を確認した
+- Ruleset `Protect main with CI`をActiveにし、PR必須、`quality`成功、最新`main`反映、force push禁止、ブランチ削除制限を設定した
+- `quality`失敗時は`Merging is blocked due to failing merge requirements`となり、復元後はマージ可能に戻ることを確認した
+- PR #6でCI、PR #7でREADMEのCI・Ruleset説明をSquash and mergeし、ローカル・リモートの作業ブランチを整理した
 
 - `python:3.14-slim`を土台に、依存関係とアプリコードをコピーしてUvicornを起動するDockerfileを作成した
 - `.dockerignore`で仮想環境、Git、`.env`、キャッシュ、ローカルSQLiteをビルド対象から除外した
@@ -101,7 +112,6 @@
 - ISBNのチェックディジットを含む厳密な妥当性検証
 - 認可を別要件から自力で設計・実装する確認
 - レート制限の実装と、本番環境での秘密情報管理サービスの利用
-- CIによるpytest・Ruff・mypyの自動実行
 - クラウド等へのデプロイ
 
 ## 現在の強み
@@ -116,6 +126,9 @@
 - 422と409を入力形式の不正・現在のDB状態との競合として使い分けられる
 - ベースライン、revision、`stamp`、`upgrade`、`downgrade`の基本的な流れを説明・実行できる
 - コード変更後に対象テストと全件テストを実行する習慣がある
+- CIの`on`・`jobs`・`services`・`steps`を区別し、runnerとPostgreSQL service containerの役割を説明できる
+- CIの正常系と異常系を確認し、失敗ログからmypyの原因箇所を特定・復元できる
+- CIによる検出とRulesetによるマージ制御を区別し、required checkの成功・失敗を確認できる
 - PostgreSQLへの接続経路をFastAPI、SQLAlchemy、Engine、`psycopg`、PostgreSQLに分けて説明できる
 - 外部キーと`relationship()`のDB側・Python側の役割を区別できる
 - N+1問題が発生する流れと`joinedload()`による事前読み込みを説明できる
@@ -172,17 +185,16 @@
 
 ## 次回の完了条件
 
-- CIが手元の確認忘れや環境差による問題をどう減らすか説明する
-- GitHub上でpytest・Ruff・mypyを実行する流れを説明する
-- CI設定を小さく作成し、成功・失敗結果を確認する
-- 失敗したチェックのログから原因箇所を特定する
+- デプロイが「開発者のMac以外からAPIを利用可能にする」ための工程だと説明する
+- ローカル、CI、本番環境の利用者・実行目的・データの違いを説明する
+- デプロイ先に必要なAPI、PostgreSQL、マイグレーション、環境変数、永続化を全体図で整理する
 
 ## 次回開始時の講師への指示
 
 次の3点を報告してから、目的と必要な理由を先に説明し、新しい用語を1つずつ扱う。
 
-- 前回の終了地点：DockerfileとDocker ComposeでAPI・PostgreSQLを起動し、Alembic自動適用、healthcheck、volume、環境変数、ログ調査、README整備まで完了
-- 今回の講義：CIが解決する問題と、GitHub上でpytest・Ruff・mypyを自動実行する基礎
+- 前回の終了地点：GitHub ActionsによるCIと、Rulesetによる`quality`必須化の正常系・異常系を確認
+- 今回の講義：デプロイが解決する問題と、ローカル・CI・本番環境の違い
 - 現在のプロジェクト：書籍管理API
 
-最初に、手元の品質確認だけでは実行忘れや環境差を防げない問題を説明する。その後、CIの位置、実行契機、環境、各チェックの担当を1つずつ説明し、完成した設定を先に渡さず小さく作成する。
+最初に、Docker Composeでローカ再現できても外部利用者からはAPIを利用できない現状を確認する。その後、デプロイの必要性、本番環境の位置、必要な構成要素を小さく説明する。

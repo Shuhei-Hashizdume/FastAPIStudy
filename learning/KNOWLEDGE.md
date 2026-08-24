@@ -377,3 +377,19 @@
 - Swagger UI表示はHTTP経路、ユーザー登録・ログインはAPIからPostgreSQLへの接続、再作成後のログインはvolumeによる永続化の確認になる
 - ログの`KeyError: 'JWT_SECRET_KEY'`から、`.env`の値を`api.environment`でコンテナへ渡していない問題を特定した
 - 今後の確認：別のAPI・DB構成でDockerfile、Compose、volume、healthcheck、環境変数を自力設計する
+
+## GitHub ActionsによるCIとRuleset
+
+- 状態：基礎学習完了・経過観察
+- CIはコード変更のたびに品質確認を自動実行し、手作業の実行漏れや環境差を減らす仕組みである
+- `on`は実行契機、`jobs`は仕事のまとまり、`services`は補助コンテナ、`steps`はjob内で順番に実行する操作を定義する
+- Ubuntu runnerはpytestや各種チェックを実行し、PostgreSQL service containerはCI専用DBを提供する
+- `uses`は既存Actionを利用し、`run`はrunner上でシェルコマンドを実行し、`with`はActionへ入力値を渡す
+- `DATABASE_URL`はAlembicとアプリ側Engine、`TEST_DATABASE_URL`はテスト用Engineが読み、CIでは同じ`fastapi_study_test`へ向ける
+- PostgreSQLが空のDBを作成し、Alembicがテーブル・カラム・制約を最新化した後、pytestがその構造を使って動作を検証する
+- Ruff・mypyはDBを必要としないため先に実行し、失敗時にAlembic・pytestへ進まないfail fastの順序にした
+- `add_book()`の`-> BookDB`を一時削除し、mypyの`no-untyped-def`と終了コード1、復元後の再成功を確認した
+- CIは成功・失敗を判定する検査、Rulesetは必須checkが失敗したPRのマージを禁止するルールである
+- RulesetでPR必須、`quality`成功、最新`main`反映、force push禁止、ブランチ削除制限を設定し、失敗時のマージ無効化と復元後の再有効化を確認した
+- PR #6でCI、PR #7でREADME説明をSquash and mergeし、完成状態だけを`main`の履歴へ取り込んだ
+- 今後の確認：別のリポジトリや複数jobのCIを、要件から自力設計する

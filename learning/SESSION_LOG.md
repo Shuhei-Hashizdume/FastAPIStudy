@@ -724,3 +724,55 @@ Pull Requestのレビューが要件・安全性・保守性をチームで確�
 ### 次回開始地点
 
 手元でpytest・Ruff・mypyを実行するだけでは、実行忘れや環境差を防げない問題を確認する。その後、CIの役割とGitHub上で品質チェックを自動実行する流れを、設定を小さく作りながら学ぶ。
+
+## 2026-08-24：GitHub ActionsによるCIとRuleset
+
+### 実施内容
+
+- `.github/workflows/ci.yml`を作成し、`push`と`pull_request`で起動する`quality` jobを定義した
+- Ubuntu runner上でcheckout、Python 3.14準備、依存関係導入、Ruff lint・format、mypy、Alembic、pytestを順番に実行した
+- PostgreSQL 17をservice containerとして起動し、ポート転送、`pg_isready`のhealth check、`fastapi_study_test`を設定した
+- `DATABASE_URL`と`TEST_DATABASE_URL`を同じCI専用DBへ向け、AlembicがDB構造を作成した後にpytestが利用する流れを確認した
+- `contents: read`でGitHub Actionsの権限をリポジトリ読み取りに限定した
+- `add_book()`の戻り値型`-> BookDB`を一時削除し、mypyの`no-untyped-def`で`quality`が失敗することを確認した
+- 型を復元し、ローカルmypyとGitHub Actionsの両方が再成功することを確認した
+- PR #6でCIをSquash and mergeし、READMEへCIの実行契機・自動処理・Rulesetの動作を追記した
+- Ruleset `Protect main with CI`をActiveにし、Default branchの`main`へPR必須、`quality`成功、最新`main`反映、force push禁止、ブランチ削除制限を設定した
+- PR #7で意図的に`quality`を失敗させ、`Merging is blocked due to failing merge requirements`とMergeボタン無効化を確認した
+- 型復元後に`quality`が再成功し、Mergeボタンが再び有効になることを確認し、PR #7をSquash and mergeした
+- ローカル`main`を`git pull --ff-only`で更新し、ローカル・リモートの作業ブランチを整理した
+
+### 理解確認できた内容
+
+- CIは手作業の検査漏れを減らし、GitHub ActionsはGitHub上でCIを実行するサービスである
+- `on`はいつ、`jobs`はどんな仕事、`services`は補助コンテナ、`steps`は具体的操作を担当する
+- runnerがpytestを実行し、SQLAlchemy・psycopg・TCPを通じてPostgreSQL service containerへ接続する
+- Ruff・mypyにはDBが不要で、pytestにはAlembicで作成したDB構造が必要なため、必要な環境が整った時点で軽い検査から実行する
+- `uses`はAction、`run`はコマンド、`with`はActionへの入力値を表す
+- CIは成功・失敗を検出し、Rulesetは失敗したPRのマージを強制的に禁止する
+- Squash and mergeは作業ブランチの複数commitを最終差分の1commitにまとめて`main`へ取り込む
+
+### 動作確認
+
+- ローカルpytest：99件成功、7.37秒
+- Ruff lint：成功
+- Ruff format：25ファイル成功
+- mypy strict：8ファイル、問題なし
+- GitHub Actionsの`push`・`pull_request` trigger：成功
+- mypy異常系：`routers/books.py:24: error: Function is missing a return type annotation [no-untyped-def]`
+- Ruleset異常系：`quality`失敗時にMergeボタン無効、復元後に再有効
+- PR #6・PR #7：Squash and merge済み
+- 最終ブランチ一覧：ローカル・リモートともに`main`のみ
+
+### 完了判定
+
+- 完了：CIの問題、実行契機、runner、service container、stepsを説明する
+- 完了：GitHub ActionsでRuff・mypy・Alembic・pytestを自動実行する
+- 完了：正常系・異常系とログからの原因特定・復旧を確認する
+- 完了：RulesetでPR・必須check・force push・ブランチ削除を制御する
+- 経過観察：別リポジトリや複数jobのCIを、要件から自力設計する
+- 未完了：クラウド等へのデプロイと、本番環境の秘密情報管理
+
+### 次回開始地点
+
+Docker Composeでローカル再現できても、外部利用者からはAPIを利用できない現状を確認する。その後、デプロイが解決する問題と、ローカル・CI・本番環境の違いを学ぶ。
