@@ -31,7 +31,7 @@
 | 認証・認可 | ヒントありで実装可能 | Argon2、JWT、Bearer認証、`/users/me`、所有者の保存、PATCH・DELETEの403に加え、個人用サービスとして一覧・1件取得を所有者へ限定し、401・404・空リストを含む正常・異常系テストを実装。別データ要件への応用は今後確認 |
 | セキュリティ | 基礎理解 | パスワードハッシュ、JWT、所有者認可、CORS、秘密情報の分離、BOLA・プロパティ認可・リソース消費・SQLインジェクション・情報漏えいの基礎を実装と既存コードに結び付けて確認。レート制限と本番Secrets管理は今後学習 |
 | Docker | ヒントありで実装可能 | DockerfileとComposeでAPI・PostgreSQLを分離し、volume、healthcheck、Alembic自動適用、環境変数、ログ調査、README手順を実装。別要件からの自力構成は今後確認 |
-| CI/CD・デプロイ | 学習中 | GitHub ActionsでRuff・mypy・Alembic・pytestを自動実行し、Rulesetで`quality`をマージ条件に設定。CIは基礎実践済み、デプロイは未学習 |
+| CI/CD・デプロイ | 学習中 | GitHub ActionsとRulesetに加え、EC2上でDocker Composeを使ってFastAPI・PostgreSQLを起動し、外部HTTP接続とDB書き込みを確認。停止・再起動後の復旧、HTTPS、バックアップ、最小権限は今後確認 |
 | ログ・障害調査 | ヒントありで実装可能 | `logger.exception()`、スタックトレース、`IntegrityError`・`SQLAlchemyError`、`caplog`による確認を実施 |
 | PRでの説明・レビュー修正 | ヒントありで実装可能 | PR #2で変更説明を行い、PR #3ではレビュー指摘の意図整理、同じブランチでの修正、追加コミット、push、確認結果とpytest未実施理由の返信、マージ後の整理まで実施。別のコードレビューでの自力対応は今後確認 |
 

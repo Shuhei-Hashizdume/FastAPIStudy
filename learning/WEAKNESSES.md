@@ -22,6 +22,11 @@
 
 ## 学習中
 
+- EC2停止時のコンテナ、Docker Volume、EBS、パブリックIPv4の状態変化を処理順で説明する
+- Docker Volumeによる同一EC2内の永続化と、EBSスナップショット等のバックアップを区別する
+- HTTPとHTTPS、Security Groupによる通信元制限と通信内容の暗号化を区別する
+- IAMのユーザー、グループ、直接付与ポリシー、最小権限の関係を説明する
+
 - 主キーとUNIQUE制約の共通点・役割の違い
 - CRUD全体を別の要件から一貫して自力実装する
 - `IntegrityError`、`error.orig`、`UniqueViolation`の関係
