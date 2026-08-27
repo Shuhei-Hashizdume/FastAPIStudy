@@ -4,11 +4,20 @@
 
 - 現在のフェーズ：Docker・デプロイ・運用基礎
 - 現在のプロジェクト：書籍管理API
-- 今回の終了地点：GitHub ActionsでRuff・mypy・Alembic・pytestを自動実行し、Rulesetで`quality`成功を`main`へのマージ条件にした
-- 現在の学習状態：CIの環境構築、PostgreSQL service container、正常系・異常系、ログ調査、Rulesetによるマージ禁止と復旧をGitHub上で確認済み
-- 次回講義：デプロイが解決する問題と、ローカル・CI・本番環境の違い
+- 今回の終了地点：AWS EC2上でDocker Composeを使ってFastAPI・PostgreSQLを起動し、外部Swagger UIとDB書き込みを確認
+- 現在の学習状態：学習用の初回EC2デプロイは成功。停止・再起動後の自動復旧とVolume永続化は未確認で、HTTPS・バックアップ・IAM最小権限は未完了
+- 次回講義：EC2停止前の状態確認と安全な停止、再起動後の復旧・DB永続化の実測
 
 ## 今回完了した項目
+
+- AWS Budgetsで`My Zero-Spend Budget`を作成し、料金発生時のメール通知先を設定した
+- ルートユーザーと日常作業用IAMユーザーにMFAを設定した
+- IAMグループ経由の`AmazonEC2FullAccess`と、EC2 Instance Connectに必要な権限を付与してEC2へ接続した
+- EC2にDocker・Git・Docker Compose・Buildxを導入し、`hello-world`とバージョン表示で動作を確認した
+- PublicのGitHubリポジトリをEC2へcloneし、EC2専用の`.env`にJWT秘密鍵とPostgreSQL設定をGit管理外で作成した
+- Security GroupのTCP 8000番をマイIP `/32`に限定し、MacのブラウザからEC2のSwagger UI表示を確認した
+- Swagger UIから`POST /users`を実行して201を確認し、PostgreSQLコンテナ内の`users`テーブルに行が保存されたことを`psql`で確認した
+- 実装済みのAlembic自動適用、PostgreSQL healthcheck、Compose内部ネットワーク、Docker VolumeがEC2上で動作することを確認した
 
 - `.github/workflows/ci.yml`を作成し、`push`と`pull_request`をtriggerにした
 - GitHub-hostedのUbuntu runnerでcheckout、Python 3.14準備、依存関係導入を順番に実行した
@@ -108,11 +117,19 @@
 
 ## 学習中・未完了
 
+- EC2停止前にコンテナ状態・ログ・デプロイ対象コミット・`.env`のファイル権限を確認する
+- `docker compose stop`とEC2コンソールを使い、PostgreSQLとEC2を安全に停止する
+- EC2再起動後のパブリックIPv4変更、Docker・Composeの起動、既存DBデータの永続化を実測する
+- DockerサービスとAPI・DBコンテナの自動起動方針を理解し、設定後に障害復旧を確認する
+- Security GroupのSSH 22番の送信元、EBS暗号化、IAMポリシーの直接付与と最小権限を見直す
+- HTTP 8000番直接とHTTPSの違いを説明し、本番向けのHTTPS化方針を選択する
+- Docker Volumeとバックアップの違いを説明し、必要に応じてEBSスナップショットまたはPostgreSQLバックアップを確認する
+
 - CRUD全体を別の要件から一貫して自力実装する
 - ISBNのチェックディジットを含む厳密な妥当性検証
 - 認可を別要件から自力で設計・実装する確認
 - レート制限の実装と、本番環境での秘密情報管理サービスの利用
-- クラウド等へのデプロイ
+- クラウドへの初回配置は成功。停止・復旧、HTTPS、バックアップ、最小権限を含む完了条件は未達成
 
 ## 現在の強み
 

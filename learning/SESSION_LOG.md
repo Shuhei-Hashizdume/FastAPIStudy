@@ -776,3 +776,36 @@ Pull Requestのレビューが要件・安全性・保守性をチームで確�
 ### 次回開始地点
 
 Docker Composeでローカル再現できても、外部利用者からはAPIを利用できない現状を確認する。その後、デプロイが解決する問題と、ローカル・CI・本番環境の違いを学ぶ。
+
+## 2026-08-26 EC2への初回デプロイと今後の確認項目
+
+### 実施・確認したこと
+
+- AWS Budgetsのゼロ支出予算、ルートユーザーMFA、日常作業用IAMユーザーとMFAを設定した
+- IAMグループ経由のEC2フルアクセスとEC2 Instance Connect権限でEC2へ接続した
+- EC2にDocker、Git、Docker Compose、Buildxを導入し、GitHubから書籍管理APIをcloneした
+- EC2専用の`.env`をGit管理外で作成し、Compose内でAPIからサービス名`db`を使ってPostgreSQLへ接続した
+- TCP 8000番の送信元をマイIP `/32`に限定し、MacからSwagger UIへ接続した
+- `POST /users`の201と、PostgreSQLの`users`テーブルへの行保存を確認した
+
+### 現在の判定
+
+- 学習用の「EC2への初回デプロイ」は成功と判定する
+- ただし、EC2停止・再起動後の自動復旧とDB永続化を実測していないため、ロードマップの「クラウド等へデプロイする」は学習中のままとする
+- HTTP 8000番直接はマイIP限定の学習用確認には使えるが、HTTPSでないため本番完了とは判定しない
+- IAMのフルアクセスと直接付与ポリシーは学習開始時の構成であり、最小権限化は未完了とする
+
+### 次に行うこと
+
+1. `docker compose ps`、ログ、EC2上のGitコミット、`.env`のファイル権限を確認する
+2. `docker compose stop`後にAWSコンソールからEC2を停止する
+3. EC2を再起動し、パブリックIPv4、Docker・Compose、既存DBデータの復旧を1項目ずつ実測する
+4. Dockerサービスとコンテナの自動起動、SSH 22番の送信元、EBS暗号化を確認する
+5. IAMの直接付与を整理し、EC2 Instance Connectを対象インスタンスやタグに限定する最小権限化を学ぶ
+6. HTTP・HTTPSの違いを確認し、学習用構成に合うHTTPS化方針を選択する
+7. Docker Volumeとバックアップの違いを確認し、必要な復元手段を設計する
+
+### 次回の開始地点
+
+- テーマ：EC2停止前の状態確認と安全な停止
+- 最初の操作：EC2上の`FastAPIStudy`ディレクトリで`docker compose ps`を実行し、各サービスの状態を読む

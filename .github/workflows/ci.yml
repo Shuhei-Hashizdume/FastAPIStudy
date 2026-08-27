@@ -26,7 +26,7 @@ jobs: #workflow内で実行する仕事のまとまり
           --health-timeout 5s
           --health-retries 5
     steps:
-      - name: Checkout repository
+      - name: Checkout repository #コードを取得
         uses: actions/checkout@v7
 
       - name: Set up Python
