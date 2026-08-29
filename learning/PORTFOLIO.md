@@ -80,14 +80,16 @@ FastAPI、Pydantic、SQLAlchemy、SQLite、PostgreSQLを使い、Web APIとデ�
 - FastAPI・Pydantic公式ドキュメントから、使用バージョンと安定版を照合して設定の根拠を確認した
 - PR #6でCIの正常系・異常系、PR #7でRulesetによるマージ禁止・復旧とREADME整備の履歴を残した
 - AWS EC2上で書籍管理APIを起動し、マイIPに制限したTCP 8000番経由でSwagger UIとユーザー登録を確認した
-- デプロイ完了の条件として、停止・復旧、HTTPS、バックアップ、IAM最小権限が未完了であることを明示した
+- EC2停止・再起動後のDocker・Compose復旧、Docker VolumeのDBデータ永続化、パブリックIPv4変化を実測した
+- IAMポリシーを学習用操作に必要な最小権限へ見直した
+- デプロイ完了の残りの条件として、HTTPSとバックアップが未完了であることを明示した
 
 ### 次の改善
 
 1. CRUD・認証・認可を別の要件から自力実装できるか確認する
 2. READMEに認証・認可、CORS、設計理由、トレードオフを追加する
-3. EC2停止・再起動後の復旧とDocker Volumeの永続化を実測する
-4. HTTPS、バックアップ、IAM最小権限と本番向け秘密情報管理を段階的に学ぶ
+3. HTTP通信をHTTPS化する
+4. Docker Volumeとバックアップを区別し、復元方針と本番向け秘密情報管理を段階的に学ぶ
 
 ### 基礎練習プロジェクトの完了条件
 

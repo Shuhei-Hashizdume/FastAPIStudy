@@ -394,9 +394,9 @@
 - PR #6でCI、PR #7でREADME説明をSquash and mergeし、完成状態だけを`main`の履歴へ取り込んだ
 - 今後の確認：別のリポジトリや複数jobのCIを、要件から自力設計する
 
-## AWS EC2への初回デプロイ
+## AWS EC2へのデプロイと停止・復旧
 
-- 状態：初回配置と外部疎通は成功・運用要件は学習中
+- 状態：初回配置、外部疎通、停止・復旧、DB永続化、IAM最小権限化は確認済み。HTTPSとバックアップは学習中
 - EC2はクラウド上の仮想サーバーであり、今回はAmazon Linux上にDockerとGitを導入した
 - GitHubから取得したコードをDocker ComposeがAPIコンテナとPostgreSQLコンテナとして起動した
 - Security GroupはEC2へ到達できる通信の種類・ポート・送信元を制限し、今回はTCP 8000番をマイIP `/32`だけに許可した
@@ -404,5 +404,6 @@
 - Docker Volumeはコンテナを作り直しても同一EC2のEBS上にDBデータを残す。EBS自体を失った場合の復元を保証するバックアップではない
 - EC2を停止すると通常はコンピュート料金は止まるが、EBSなど保持したリソースの料金は残り得る。また、再起動後は通常パブリックIPv4が変わる
 - HTTPは通信内容を暗号化しない。Security GroupのマイIP制限は到達元を狭める対策であり、HTTPSの代わりではない
-- IAMのマネージドポリシーは導入を早めるが、`AmazonEC2FullAccess`と全リソース対象のEC2 Instance Connectは最小権限ではない
-- 今後の確認：停止・再起動後の復旧、自動起動、HTTPS、バックアップ、IAM最小権限を1項目ずつ実測する
+- EC2とコンテナを停止・再起動し、Docker・Composeの復旧、Docker Volume内のDBデータ、パブリックIPv4の変化を実測した
+- IAMポリシーは、学習用操作に必要な最小権限へ見直した
+- 今後の確認：HTTP通信のHTTPS化と、Docker Volumeの永続化とは別のバックアップ方針を学ぶ
