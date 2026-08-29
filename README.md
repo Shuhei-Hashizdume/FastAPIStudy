@@ -81,7 +81,13 @@ export DATABASE_URL="postgresql+psycopg://DBユーザー名@localhost:5432/fasta
 
 ## Docker Composeの起動方法
 
-このアプリではAPIコンテナとPostgreSQLコンテナを一緒に使用します。
+このアプリでは、Caddyコンテナ、APIコンテナ、PostgreSQLコンテナを一緒に使用します。
+
+主な役割は次のとおりです。
+
+- Caddy：外部通信、HTTPS、APIへの転送
+- API：Uvicorn・FastAPIによる書籍管理処理
+- PostgreSQL：データ保存
 
 また.env.exampleをコピーして、自分のPCに.envを作成します。
 
@@ -97,6 +103,15 @@ Docker ComposeがPostgreSQLの設定に使用する、次の3つの見本値も�
 - POSTGRES_PASSWORD：そのユーザーのローカル用パスワード
 - POSTGRES_DB：作成するローカル用データベース名
 
+CaddyがHTTPS通信を受け付ける接続先として、`CADDY_HOST`も実行環境に合わせて変更します。
+
+- Macでローカル確認する場合：`localhost`
+- EC2で確認する場合：現在のEC2パブリックIPv4アドレス
+
+EC2をStopしてからStartすると、通常はパブリックIPv4アドレスが変わります。その場合は、EC2上の`.env`にある`CADDY_HOST`を新しい値へ更新してください。
+
+実際のEC2パブリックIPv4アドレスは環境固有の値なので、`.env.example`やREADMEへ直接記載しないでください。
+
 JWT_SECRET_KEYは安全なランダム値へ変更します。
 ターミナルで以下のコマンドを実行して、表示された値を.envのJWT_SECRET_KEYへ設定します。
 
@@ -110,25 +125,52 @@ openssl rand -hex 32
 docker compose up -d
 ```
 
-APIとPostgreSQLの起動状態を確認します。
-確認結果から`api`が`Up`、`db`も`Up(healthy)`になっていることを確認します。
+Caddy、API、PostgreSQLの起動状態を確認します。
+確認結果から`caddy`と`api`が`Up`、`db`が`Up (healthy)`になっていることを確認します。
 
 ```bash
 docker compose ps
 ```
 
-Swagger UIを以下のURLより、開いてください。
+ローカル環境のSwagger UIは、次のURLです。
 
-```txt
-http://localhost:8000/docs
+```text
+https://localhost/docs
 ```
 
-APIとPostgreSQLを停止する方法は以下のコマンドを実行します。
-コマンドの中で`-v`はつけないので、volumeは残ります。
+Caddyの内部CAはMacから最初は信頼されていないため、ルート証明書を信頼する方法は後述します。
+
+Caddy、API、PostgreSQLを停止するには、次のコマンドを実行します。
+コマンドに`-v`を付けないため、PostgreSQLのデータとCaddyの証明書を保存するVolumeは残ります。
 
 ```bash
 docker compose down
 ```
+
+### ローカルHTTPSの証明書確認
+
+`tls internal`では、Caddyの内部CAが証明書を発行します。Macはこの内部CAを最初は信頼していないため、そのままHTTPS接続すると証明書検証エラーになります。
+
+Caddyコンテナから公開ルート証明書をMacの一時ディレクトリへコピーします。
+
+```bash
+CADDY_HOST=localhost docker compose cp \
+  caddy:/data/caddy/pki/authorities/local/root.crt \
+  /tmp/fastapistudy-caddy-root.crt
+```
+
+次のコマンドでは、Mac全体の信頼ストアを変更せず、この`curl`の通信だけでCaddyのルート証明書を信頼します。
+
+```bash
+curl --cacert /tmp/fastapistudy-caddy-root.crt \
+  -s -o /dev/null \
+  -w "%{http_code}\n" \
+  https://localhost/docs
+```
+
+`200`が表示されれば、証明書検証、CaddyのTLS終端、CaddyからAPIへの転送、FastAPIのSwagger UIまでの通信が成功しています。
+
+ローカル環境とEC2環境では、それぞれ別のCaddy内部CAが作られます。そのため、EC2へ配置するときは、EC2側のCaddyが作成した公開ルート証明書を使用します。
 
 ## DBマイグレーション
 
