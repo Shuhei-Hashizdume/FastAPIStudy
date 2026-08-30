@@ -126,7 +126,7 @@
   - [x] EC2でFastAPI・PostgreSQLを起動し、外部からのHTTP接続とDB書き込みを確認する
   - [x] EC2停止・再起動後のDocker自動復旧とDBデータ永続化を実測する
   - [x] CaddyをTLS終端とリバースプロキシとして追加し、パブリックIPを使った学習用HTTPS経路と8000番の外部遮断を確認する
-  - [ ] Web UIのローカル開発前に、Mac上のCaddyのローカルCAを同じMacで信頼し、ブラウザから`https://localhost`を確認する
+  - [x] Web UIのローカル開発前に、Mac上のCaddyのローカルCAを同じMacで信頼し、ブラウザから`https://localhost`を確認する
   - [ ] HTTPS、バックアップ、最小権限、監視を含む本番向けの差分を説明する
 - [x] ヘルスチェック、ログ、障害時の切り分けを行う
 
