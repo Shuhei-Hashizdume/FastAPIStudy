@@ -82,13 +82,14 @@ FastAPI、Pydantic、SQLAlchemy、SQLite、PostgreSQLを使い、Web APIとデ�
 - AWS EC2上で書籍管理APIを起動し、マイIPに制限したTCP 8000番経由でSwagger UIとユーザー登録を確認した
 - EC2停止・再起動後のDocker・Compose復旧、Docker VolumeのDBデータ永続化、パブリックIPv4変化を実測した
 - IAMポリシーを学習用操作に必要な最小権限へ見直した
-- デプロイ完了の残りの条件として、HTTPSとバックアップが未完了であることを明示した
+- Caddyを使った学習用HTTPS化、HTTPリダイレクト、FastAPIへの転送、内部CAの証明書検証、API 8000番の外部遮断を実測した
+- 本番向けデプロイ完了の残りの条件として、ドメインと公的CA、バックアップ、監視が未完了であることを明示した
 
 ### 次の改善
 
 1. CRUD・認証・認可を別の要件から自力実装できるか確認する
 2. READMEに認証・認可、CORS、設計理由、トレードオフを追加する
-3. HTTP通信をHTTPS化する
+3. Web UI開発に向け、ローカルCaddy CAをMacで信頼させて`https://localhost`をブラウザで確認する
 4. Docker Volumeとバックアップを区別し、復元方針と本番向け秘密情報管理を段階的に学ぶ
 
 ### 基礎練習プロジェクトの完了条件
