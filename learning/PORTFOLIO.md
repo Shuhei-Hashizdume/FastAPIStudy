@@ -89,7 +89,7 @@ FastAPI、Pydantic、SQLAlchemy、SQLite、PostgreSQLを使い、Web APIとデ�
 
 1. CRUD・認証・認可を別の要件から自力実装できるか確認する
 2. READMEに認証・認可、CORS、設計理由、トレードオフを追加する
-3. Web UI開発に向け、ローカルCaddy CAをMacで信頼させて`https://localhost`をブラウザで確認する
+3. Web UIの利用者、画面、操作、FastAPIへ送るHTTPメソッドを整理する
 4. Docker Volumeとバックアップを区別し、復元方針と本番向け秘密情報管理を段階的に学ぶ
 
 ### 基礎練習プロジェクトの完了条件

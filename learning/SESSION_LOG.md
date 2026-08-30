@@ -853,10 +853,17 @@ Docker Composeでローカル再現できても、外部利用者からはAPIを
 - 完了：CaddyによるHTTPからHTTPSへの転送とFastAPIへのリバースプロキシ
 - 完了：内部CAのルート証明書を使った証明書検証
 - 完了：FastAPI 8000番の外部遮断
-- 未完了：Mac上のローカルCaddy CAを同じMacで信頼し、ブラウザから`https://localhost`を確認する
+- 完了：Mac上のローカルCaddy CAを同じMacで信頼し、ブラウザから`https://localhost/docs`を警告なしで確認した
 - 未完了：ドメインと公的CAによる一般ユーザー向けHTTPS、バックアップ、監視
+
+### ローカルCA信頼登録の追加確認
+
+- ローカルCaddyの公開ルート証明書をMacへコピーし、SHA-256フィンガープリントを確認した
+- Macのシステムキーチェーンへ信頼するルートCAとして登録し、登録後のSHA-256ハッシュの一致を確認した
+- `--cacert`と`-k`なしのcurlで`https://localhost/docs`が200を返し、ブラウザでも証明書警告なしにSwagger UIを表示した
+- EC2側CaddyのCAとローカルCaddyのCAは別物であり、Mac全体で信頼させたのはローカルCAだけであることを確認した
 
 ### 次回の開始地点
 
-- Web UI開発の前提として、ローカルCaddyの公開ルート証明書だけをMacの信頼ストアへ登録する
-- `https://localhost`をブラウザで開き、証明書警告なしでFastAPIへ接続できることを確認する
+- Web UIが誰のどの問題を解決するか、必要な画面と操作を整理する
+- FastAPIからHTMLを配信する方式と、別のフロントエンドを使う方式の違いを比較する

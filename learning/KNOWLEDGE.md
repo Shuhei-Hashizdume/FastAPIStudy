@@ -409,4 +409,5 @@
 - `tls internal`の内部CAはOS・ブラウザから初期信頼されない。`--cacert`は指定したcurlだけでルートCAを信頼し、`-k`は証明書検証を省略する診断用指定である
 - EC2とコンテナを停止・再起動し、Docker・Composeの復旧、Docker Volume内のDBデータ、パブリックIPv4の変化を実測した
 - IAMポリシーは、学習用操作に必要な最小権限へ見直した
-- 今後の確認：ローカルCaddy CAのMac信頼登録、ドメインと公的CAへの移行、Docker Volumeの永続化とは別のバックアップ方針を学ぶ
+- ローカルCaddyのルートCAはMacのシステムキーチェーンへ登録し、curlとブラウザで`https://localhost/docs`の証明書検証に成功した。EC2側CAはMac全体の信頼対象にしていない
+- 今後の確認：ドメインと公的CAへの移行、Docker Volumeの永続化とは別のバックアップ方針を学ぶ

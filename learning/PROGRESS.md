@@ -4,9 +4,9 @@
 
 - 現在のフェーズ：Docker・デプロイ・運用基礎
 - 現在のプロジェクト：書籍管理API
-- 今回の終了地点：Caddyを外部窓口とした学習用HTTPS経路をMacとEC2で構築し、証明書検証付き`/docs`の200と8000番の外部遮断を確認
-- 現在の学習状態：パブリックIPとCaddy内部CAを使う一時的なHTTPS化は完了。ドメインと公的CA、バックアップ、監視は未完了
-- 次回講義：Web UIの開発前にローカルCaddy CAをMacで信頼させ、ブラウザから`https://localhost`を確認する
+- 今回の終了地点：ローカルCaddyの公開ルート証明書をMacのシステムキーチェーンへ登録し、警告なしで`https://localhost/docs`を表示
+- 現在の学習状態：パブリックIPとCaddy内部CAを使う学習用HTTPS化、ローカルCAのMac信頼登録は完了。ドメインと公的CA、バックアップ、監視は未完了
+- 次回講義：Web UIが解決する問題を整理し、FastAPIからHTMLを配信する方式と別フロントエンドの違いを比較する
 
 ## 今回完了した項目
 
@@ -20,6 +20,8 @@
 - IP直接接続でSNIがない場合のTLS失敗を再現し、`default_sni {$CADDY_HOST}`で修正した
 - EC2側Caddyの公開ルート証明書を`--cacert`で明示し、証明書検証を省略せず`https://<EC2パブリックIP>/docs`の200を確認した
 - ComposeのAPIポート公開とSecurity Groupの8000番を削除し、Macからの直接接続がタイムアウトすることを確認した
+- ローカルCaddyの`root.crt`のSHA-256フィンガープリントを確認し、Macのシステムキーチェーンへ信頼するルートCAとして登録した
+- `--cacert`と`-k`を使わないcurlの200と、ブラウザで警告なしの`https://localhost/docs`表示を確認した
 
 - AWS Budgetsで`My Zero-Spend Budget`を作成し、料金発生時のメール通知先を設定した
 - ルートユーザーと日常作業用IAMユーザーにMFAを設定した
@@ -128,7 +130,6 @@
 
 ## 学習中・未完了
 
-- Web UIのローカル開発を始める前に、Mac上のCaddyが作成したローカルCAの`root.crt`を同じMacの信頼ストアへ登録し、`https://localhost`をブラウザで検証する（EC2側CaddyのCAはMac全体へ登録しない）
 - Docker Volumeとバックアップの違いを説明し、必要に応じてEBSスナップショットまたはPostgreSQLバックアップを確認する
 
 - CRUD全体を別の要件から一貫して自力実装する
