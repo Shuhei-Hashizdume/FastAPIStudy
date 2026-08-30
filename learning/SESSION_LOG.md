@@ -832,3 +832,31 @@ Docker Composeでローカル再現できても、外部利用者からはAPIを
 
 - テーマ：HTTP通信の危険性とHTTPS化
 - 最初の学習：HTTPとHTTPSの違い、TLSが解決する問題、EC2上の書籍管理APIでHTTPSを受け付ける位置を整理する
+
+## 2026-08-30 Caddyによる学習用HTTPS化
+
+### 実施・確認したこと
+
+- CaddyをComposeへ追加し、80・443番の外部窓口、TLS終端、`api:8000`へのリバースプロキシを構成した
+- Caddyfileのフォーマットと`Valid configuration`、Compose設定、pytest 99ケースの成功を確認した
+- HTTP 80番からHTTPSへの308リダイレクトと、Caddy経由の`/docs`の200をMacから確認した
+- IP直接接続でSNIが送られずCaddyが証明書を選択できないTLSエラーを、OpenSSLの`-servername`有無で切り分けた
+- `default_sni {$CADDY_HOST}`を追加し、SNIなしでもTLS 1.3接続が成立することをMacとEC2で確認した
+- EC2側Caddyの公開ルート証明書をMacへコピーし、SHA-256フィンガープリントの一致を確認した
+- curlの`--cacert`で対象通信だけ内部CAを信頼し、証明書検証を省略せず`/docs`が200を返すことを確認した
+- APIのホスト側8000番公開とSecurity Groupの8000番を削除し、Macからの直接接続がタイムアウトすることを確認した
+- 実装と学習記録を分けてコミットし、PRのマージ後にMacとEC2の`main`へ反映した
+
+### 完了判定
+
+- 完了：パブリックIPとCaddy内部CAを使う学習用HTTPS経路
+- 完了：CaddyによるHTTPからHTTPSへの転送とFastAPIへのリバースプロキシ
+- 完了：内部CAのルート証明書を使った証明書検証
+- 完了：FastAPI 8000番の外部遮断
+- 未完了：Mac上のローカルCaddy CAを同じMacで信頼し、ブラウザから`https://localhost`を確認する
+- 未完了：ドメインと公的CAによる一般ユーザー向けHTTPS、バックアップ、監視
+
+### 次回の開始地点
+
+- Web UI開発の前提として、ローカルCaddyの公開ルート証明書だけをMacの信頼ストアへ登録する
+- `https://localhost`をブラウザで開き、証明書警告なしでFastAPIへ接続できることを確認する
